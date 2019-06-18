@@ -2,23 +2,61 @@
 
 # Intro
 
-Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling). However, I've found little analysis that attempts to analyze all the major bottlenecks in order to gain a broader picture of where we stand and the hurdles ahead. LukeJr gave [results of his analysis](https://www.youtube.com/watch?v=CqNEQS80-h4) that lowering the blocksize maximum to 300KB would allow us to maintain the current sync time, and would allow sync time to decrease slowly over the years. But [his script](LukeJr's sync-time script.py) only calculates one bottleneck.
+Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling). However, I've found little analysis that attempts to analyze all the major bottlenecks in order to gain a broader picture of where we stand and the hurdles ahead. LukeJr gave [results of his analysis](https://www.youtube.com/watch?v=CqNEQS80-h4) that lowering the blocksize maximum to 300KB would allow us to maintain the current sync time, and would allow sync time to decrease slowly over the years. But [his script](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/LukeJr's%20sync-time%20script.py) only calculates one bottleneck.
+
+- [Overview](#overview)
+  * [Bandwidth](#bandwidth)
+  * [Hard drive space](#hard-drive-space)
+  * [CPU speed](#cpu-speed)
+  * [Memory](#memory)
+  * [An aside about technological growth](#an-aside-about-technological-growth)
+- [Assumptions](#assumptions)
+- [Light nodes](#light-nodes)
+- [The State of Available Machine Resources](#the-state-of-available-machine-resources)
+- [Bottlenecks](#bottlenecks)
+  * [Initial Block Download](#initial-block-download)
+  * [Initial Sync Validation (without assumevalid)](#initial-sync-validation-without-assumevalid)
+  * [Initial Sync Validation (using assumevalid)](#initial-sync-validation-using-assumevalid)
+  * [Ongoing Transaction Download & Upload](#ongoing-transaction-download--upload)
+  * [Ongoing Validation](#ongoing-validation)
+  * [UTXO Set Disk Usage](#utxo-set-disk-usage)
+  * [Blockchain & UTXO disk usage](#blockchain--utxo-disk-usage)
+  * [UTXO Set Memory Usage](#utxo-set-memory-usage)
+- [Summary of the Current State of Bitcoin](#summary-of-the-current-state-of-bitcoin)
+- [Potential Solutions](#potential-solutions)
+  * [Assume UTXO](#assume-utxo)
+  * [Erlay](#erlay)
+  * [Fraud Proofs](#fraud-proofs)
+  * [Assume UTXO, Ignore Historical](#assume-utxo-ignore-historical)
+  * [Accumulators](#accumulators)
+  * [Upgraded SPV Nodes](#upgraded-spv-nodes)
+  * [Distributed data storage](#distributed-data-storage)
+- [Future throughput and capacity needs](#future-throughput-and-capacity-needs)
+  * [UTXO Expectations](#utxo-expectations)
+  * [Lightning Network contingencies](#lightning-network-contingencies)
+  * [End Game](#end-game)
+- [Conclusions](#conclusions)
+- [Appendix A - Derivation of Initial Block Download equations](#appendix-a---derivation-of-initial-block-download-equations)
+- [Appendix B - Derivation of the Equation For Initial Sync Validation (without assumevalid)](#appendix-b---derivation-of-the-equation-for-initial-sync-validation-without-assumevalid)
+- [Appendix C - Derivation of the Equation For Initial Sync Validation (using assumevalid)](#appendix-c---derivation-of-the-equation-for-initial-sync-validation-using-assumevalid)
+- [Appendix D - Derivation of equations for assumeutxo](#appendix-d---derivation-of-equations-for-assumeutxo)
+
 
 # Overview
 
-In order to analyse Bitcoin's maximum throughput, its necessary to choose some support-goals: basically what minimum system requirements do we want Bitcoin to support for various aspects of running the network. Once we choose goals, we can calculate the transaction throughput at which those goals are barely met for each major process necessary for users on the Bitcoin network to do. Here are some considerations:
+In order to analyze Bitcoin's maximum throughput, its necessary to choose some support-goals: basically what minimum system requirements do we want Bitcoin to support for various aspects of running the network. Once we choose goals, we can calculate the transaction throughput at which those goals are barely met for each major process necessary for users on the Bitcoin network to do. Here are some considerations:
 
 1. We want as many people as practical to mine bitcoin.
 2. We want many people to support the network by passing around transactions and blocks.
 3. We want most people to be able to be able to fully verify their transactions so they have full self-sovereignty of their money.
-4. We want to be resilient in the face of chain splits. For example, if a majority wants to change bitcoin in a way that a minority thinks is horribly compromises the system, its important that minority can maintain the operation of their chain in the face of a majority split.
+4. We want to be resilient in the face of chain splits. For example, if a majority wants to change bitcoin in a way that a minority thinks is dangerous or compromises the system, its important that minority can maintain the operation of their chain in the face of a majority split.
 5. We want to be resilient in the face of attempted eclipse attacks.
 
 We don't need the people with the worst equipment to mine (#1), and we might not even need them to support the network (#2) very much, but we do want them to be able to be able to fully verify their own transactions (#3), and we want them to be able to know what chain they're on (#4).
 
 These considerations are all affected by transaction throughput and blocksize.
 
-\#1 is important to bitcoin, but is the least affected by increased block size, since miners are generally either large powerful server farms or large mining pools. Miners are unlikely to drop out of bitcoin because of even many orders of magnitude more transactions.
+\#1 is important to bitcoin, but is the least affected by increased block size, since miners are generally either large powerful server farms or large mining pools. Miners are unlikely to drop out of bitcoin even if there were many orders of magnitude more transactions (as long as fees held up).
 
 \#2 is important, but we don't need everyone to do it - just a critical mass. As long as even 5% of the network is honest and passes around data, the network can be supported during normal operation.
 
@@ -38,24 +76,6 @@ C. Users would need to use more of their computer's CPU time and memory to verif
 
 D. Users who can't do A, B, or C (or feel its not worth it) would not be able to run a full node, and would instead use a less intensive node like an SPV node.
 
-# Light nodes
-
-One obvious question is: why do we need or want most people to run full nodes? One can imagine that since SPV nodes are so cheap to run, maybe it would be acceptable if most people simply used SPV. However there are a number of problem with this as the moment:
-
-* SPV nodes have [privacy problems](https://eprint.iacr.org/2014/763.pdf) related to Bloom filters.
-* SPV nodes can be [lied to by omission](https://bitcoin.stackexchange.com/questions/36643/thin-client-remote-node-lying-through-omission).
-* SPV [doesn't scale well](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim) for the SPV servers that serve SPV light clients.
-* Light nodes currently have no way to protect themselves in the case that a majority hard fork changes the consensus rules in ways that user doesn't agree with.
-* Light nodes are fundamentally more vulnerable in a successful [eclipse attack](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5) because they don't validate most of the transactions.
-
-The last two are most important. If the vast majority of the network is unable to protect against an invalid longer-chain, then everyone in the network is suceptible to an unwanted and unintentional change of consensus rules, which could potentially leech the majority of wealth onto a less secure branch. SPV nodes don't currently have any way to be aware of most types of consensus rules changes.
-
-Many of these problems can be solved, but the last one is fundamental and cannot be solved. Light nodes will always be more vulnerable in an eclipse attack. Its certainly possible that it can be effectively solved by reducing the likelyhood of an eclipse attack so there's no significant likelyhood of one being successful.
-
-SPV nodes are not the solution to scaling at the moment, tho they may help scale if these problems are solved.
-
-# The State of Available Machine Resources
-
 ## Bandwidth
 
 Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was [around 5 Kbps or lower in 2016](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/). While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
@@ -66,11 +86,11 @@ The worlds internet speeds are increasing around 25%/year ([23% in 2015](https:/
 
 I had a hard time finding data for disk space in the world, but I took a look at the [cheapest smartphones you can get in india](https://www.scoopwhoop.com/9-best-budget-smartphones-you-can-get-in-india-in-january-2019/) for an idea. The [Xiaomi Redmi Y2 specs](https://pricebaba.com/mobile/xiaomi-redmi-y2) can be bought for about 8,600 rupees ($120) and has 32GB of storage. This seems like a reasonable amount of storage to expect somone would have even in a poor country, given that you can get a 32GB SD card for $7 these days.
 
-The cost of hard disk space is declining at a rate of [about 25%](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/), tho that rate is declining.
+The cost of hard disk space is declining at a rate of [about 25%](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/), tho that rate is slowing.
 
 ## CPU speed
 
-These I have far less information about because its difficult to know how many transactions a machine with some given specs could validate. I would [be curious](https://bitcoin.stackexchange.com/questions/87864/how-can-i-calculate-estimate-how-quickly-a-machine-can-verify-transactions-on-th) to know more. However, [Eric Kuhn mentioned](https://twitter.com/erickuhn19/status/1095553655086804993) that verifying the transactions can be a much larger bottleneck than downloading them. There are about [415 million transactions](https://www.blockchain.com/charts/n-transactions-total) in the bitcoin blockchain, and if it can take 25 days to verify everything, as Eric Kuhn mentioned, that means his raspberry pi could only verify about 192 tps.
+I was not able to get good information about CPU speed because it's difficult to know how many transactions a machine with some given specs could validate. I would [be curious](https://bitcoin.stackexchange.com/questions/87864/how-can-i-calculate-estimate-how-quickly-a-machine-can-verify-transactions-on-th) to know more. However, [Eric Kuhn mentioned](https://twitter.com/erickuhn19/status/1095553655086804993) that verifying the transactions can be a much larger bottleneck than downloading them. There are about [415 million transactions](https://www.blockchain.com/charts/n-transactions-total) in the bitcoin blockchain, and if it can take 25 days to verify everything, as Eric Kuhn mentioned, that means his raspberry pi could only verify about 192 tps.
 
 The cost of cpu power is decreasing at less than [20%/year](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx), so I'll use LukeJr's number of 17%/year for cost of CPU power.
 
@@ -90,21 +110,15 @@ Not everyone can afford a dedicated node that uses 100% of its bandwidth/cpu/mem
 
 I will use the following hypothetical goals:
 
-I. 90% of Bitcoin users should be able to start a new node and fully sync with the chain (using assumevalid) within 1 week using at most 75% of the resources of a machine they already own.
+I. 90% of Bitcoin users should be able to start a new node and fully sync with the chain (using assumevalid) within 1 week using at most 75% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
 
 II. 90% of Bitcoin users should be able to validate block and transaction data that is forwarded to them using at most 10% of the resources of a machine they already own.
 
-III. 90% of Bitcoin users should be able to validate and forward data through the network using at most 10% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
+III. 90% of Bitcoin users should be able to validate and forward data through the network using at most 10% of the resources of a machine they already own.
 
 IV. The top 10% of Bitcoin users should be able to store and seed the network with the entire blockchain using at most 10% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
 
 V. An attacker with 50% of the public addresses in the network can have no more than 1 chance in 10,000 of eclipsing a victim that chooses random outgoing addresses.
-
-Most of the bottom 10% that don't fall within these goals can be assumed to use SPV. An SPV node can give its user basically as much security as a full node, even tho it doesn't help the rest of the network. So, why not structure our goals so more nodes are assumed to get by with SPV nodes?
-
-One reason is that SPV nodes don't support the network. They don't validate blocks or transactions (other than SPV proofs they're passed) so they also don't pass around transactions or block data. However, they do consume resources. This is ok as long as we have a critical mass that do support the network (which is why I chose 10% as the fraction of nodes that do that). But if too big a fraction of the network consists of SPV nodes, then we won't reach that critical mass of full nodes that can adequately support the network.
-
-Another important reason is that SPV nodes don't know that the chain they're on only contains valid transactions. They can validate SPV proofs sent to them about transactions they query SPV servers for, and they validate the headers of the longest chain, but if the longest chain contains invalid transactions, an SPV node won't know that. In the case that a majority decide to change the rules of bitcoin in a dangerous way, SPV nodes will blindly follow the new rules as long as they can still validate their SPV proofs. So for a healthy level of decentralization and user-level agency in consensus rules, not too much of the network should consist of nodes that are suceptible to that kind of majority consensus rules change.
 
 For the purposes of this analysis, I'm going to use the following estimates:
 
@@ -113,45 +127,69 @@ For the purposes of this analysis, I'm going to use the following estimates:
 
 *See the "Ongoing Transaction Download & Upload" section for how 80 connections was calculated for the 10th percentile user.*
 
+Most of the bottom 10% that don't fall within these goals can be assumed to use SPV. An SPV node can give its user almost as much security as a full node, even tho it doesn't help the rest of the network.
+
+# Light nodes
+
+One obvious question is: why do we need or want most people to run full nodes? One can imagine that since SPV nodes are so cheap to run, maybe it would be acceptable if most people simply used SPV. However there are a number of problems with this as the moment:
+
+* **SPV nodes have [privacy problems](https://eprint.iacr.org/2014/763.pdf)** related to Bloom filters.
+* **SPV nodes can be [lied to by omission](https://bitcoin.stackexchange.com/questions/36643/thin-client-remote-node-lying-through-omission)**.
+* **SPV [doesn't scale well](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim) for SPV servers** that serve SPV light clients.
+* **Light clients don't support the network.** They don't validate blocks or transactions (other than SPV proofs they're passed) so they also don't pass around transactions or block data. However, they do consume resources. This is ok as long as we have a critical mass that do support the network (which is why I chose 10% as the fraction of nodes that do that). But if too big a fraction of the network consists of SPV nodes, then we won't reach that critical mass of full nodes that can adequately support the network.
+* **SPV nodes don't know that the chain they're on only contains valid transactions.** They can validate SPV proofs sent to them about transactions they query SPV servers for, and they validate the headers of the longest chain, but if the longest chain contains invalid transactions, an SPV node won't know that. In the case that a majority decide to change the rules of bitcoin in a dangerous way, SPV nodes will blindly follow the new rules as long as they can still validate their SPV proofs. So for a healthy level of decentralization and user-level agency in consensus rules, not too much of the network should consist of nodes that are suceptible to that kind of majority consensus rules change.
+* Light clients are fundamentally **more vulnerable in a successful [eclipse attack](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)** because they don't validate most of the transactions.
+
+The last two are most important. If the vast majority of the network is unable to protect against an invalid longer-chain, then everyone in the network is suceptible to an unwanted and unintentional change of consensus rules, which could potentially leech the majority of wealth onto a less secure branch. SPV nodes don't currently have any way to be aware of most types of consensus rules changes.
+
+Many of these problems can be solved, but the last one is fundamental and cannot be solved. Light nodes will always be more vulnerable in an eclipse attack. Its certainly possible that it can be effectively solved by reducing the likelyhood of an eclipse attack so there's no significant likelyhood of one being successful.
+
+SPV nodes are not the solution to scaling at the moment, tho they may help scale if these problems are solved.
+
+# The State of Available Machine Resources
+
+I will choose system requirements for 90% of the users and for the top 10% of users, but first we need to understand what machine resources are available to people around the world.
+
+
 # Bottlenecks
 
 These bottlenecks are all calculated in [a spreadsheet](bottlenecks.xlsx). I'll summarize the findings of those calculations below.
 
 ## Initial Block Download
 
-The equation for the maximum size of the blockchain that can be downloaded by our 90th percentile users is [see Apendix A for derivation]:
+The equation for the maximum size of the blockchain that can be downloaded by our 90th percentile users is (See [Appendix A](#appendix-a---derivation-of-initial-block-download-equations) for derivation):
 
 `maxSize = 94 KB/s * 1.25^years * 1 week = 94*1.25^t*(7*24*60*60)/10^6 GB`
 
 The maximum throughput our 90th percentile users can manage at that maximum size at a given time `t` is:
 
-`size' = 94 KB/s * ln(1.25) * 1.25^years * 1 week = 94*1.25^t*(7*24*60*60)/(365*24*60*60) KB/s`
+`maxSize' = 94 KB/s * ln(1.25) * 1.25^years * 1 week = 94*1.25^t*(7*24*60*60)/(365*24*60*60) KB/s`
 
 This means the current maximum size we can safely support is 57 GB, and the maximum growth at that size requires a maximum blocksize of 241 KB. If we keep Bitcoin unchanged, we won't reach safe operation for over 15 years, as far as IBD is concerned.
 
 ## Initial Sync Validation (without assumevalid)
 
-First, I'll do this without the benefit of assumevalid, since some people believe the only way to be sure you're on the right chain is to download validate the entire thing. The equationsfor how many transactions we can process to meet a given sync-time requirement are [see Appendix B for derivation]:
+First, I'll do this without the benefit of assumevalid, since some people believe the only way to be sure you're on the right chain is to download and validate the entire thing. The equations (See [Appendix B](#appendix-b---derivation-of-the-equation-for-initial-sync-validation-without-assumevalid) for derivation) for how many transactions we can process to meet a given sync-time requirement are:
 
-`transactions = 200 * 1.17^years * (7*24*60*60)`
+`maxTransactions = 200 * 1.17^years * (7*24*60*60)`
 
-`transactions' = 200 * ln(1.17) * 1.17^years * (7*24*60*60)`
+`maxTransactions' = 200 * ln(1.17) * 1.17^years * (7*24*60*60)`
 
 The current maximum number of transactions we meet our goals with is 0.5 transactions/second, which is equivalent to a maximum block size of 129 KB. This too would take over 15 years to get to a point where we're meeting goals.
 
 ## Initial Sync Validation (using assumevalid)
 
-With [assumevalid](https://bitcoinmagazine.com/articles/bitcoin-core-0140-released-whats-new/), not all transactions in the chain need to be validated. I'll assume a hypothetical 6-month software release cycle, where the assumevalid block is chosen 1 month before release, which means a new client with correct software will only need to validate blocks up to 7 months into the past. I'll assume that avoiding validating transaction signatures saves 90% of the transaction processing time (some processing is still needed to build the UTXO set). In practice, assumevalid gives approximately a [50% transaction-validation time reduction](https://www.reddit.com/r/Bitcoin/comments/5xomir/0140_is_a_beast_48_faster_initial_sync/) (ie a 100% speedup).
+With [assumevalid](https://bitcoinmagazine.com/articles/bitcoin-core-0140-released-whats-new/), not all transactions in the chain need to be validated. I'll assume a hypothetical 6-month software release cycle, where the assumevalid block is chosen 1 month before release, which means a new client with correct software will only need to validate blocks up to 7 months into the past. I'll assume that avoiding transaction signature validation saves 90% of the transaction processing time (some processing is still needed to build the UTXO set). In practice, assumevalid gives in total (including processing of transactions past the assumevalid point) approximately a [50% transaction-validation time reduction](https://www.reddit.com/r/Bitcoin/comments/5xomir/0140_is_a_beast_48_faster_initial_sync/) (ie a 100% speedup).
 
-Because the equations for blockchain size using assumevalid aren't solvable for the number of transactions over time(see Appendix C), I decided to solve the numbers with guess and check in excel. Basically I have a starting point for the blockchain size and transaction throughput, from which I calculate the number of recent transactions not assumed valid, the number of old transactions assumed valid. I also calculated a number that I called the "Adjusted Equivalent Transactions", which is the number of transactions that a node could process without the benefit of assumevalid in the same amount of time that a node could process the full (non adjusted) transactions. From that adjusted value, I calculated the syncTime. Each subsequent blockchain size is calculated from the transaction throughput the previous year, and I played around with each year's throughput so that the syncTime was about 7 days for each year.
+Because the equations for blockchain size using assumevalid aren't solvable for the number of transactions over time (see [Appendix C](#appendix-c---derivation-of-the-equation-for-initial-sync-validation-using-assumevalid)), I decided to solve approximately with guess and check in excel. Basically I have a starting point for the blockchain size and transaction throughput, from which I calculate the number of recent transactions not assumed valid and the number of old transactions that are assumed valid. I also calculated a number that I called the "Adjusted Equivalent Transactions", which is the number of transactions that a node could process without the benefit of assumevalid in the same amount of time that a node could process the full (non adjusted) transactions. From that adjusted value, I calculated the syncTime. Each subsequent blockchain size is calculated from the transaction throughput the previous year, and I played around with each year's throughput so that the syncTime was about 7 days for each year.
 
-Since there's multiple solutions to this, I cacluated one set of solutions using the current blockchain size and a second set of solutions using the current throughput. They ended up having somewhat similar numbers. For starting at the current blockchain size of  415 million transactions, the maximum throughput is 4.9 tps or the equivalent of about 1.4 MB blocks. For a starting point of the current throughput of about [4.2 transactions/second](https://www.blockchain.com/en/charts/transactions-per-second?timespan=all&daysAverageString=7) which translates to blocks of about 1.2 MB, the maximum blockchain size is about 530 transactions (about 25% more than the blockchain contains). This means that by using assumevalid to avoid validating old transactions, Bitcoin is currently at a healthy size and growth rate as far as transaction processing is concerned.
+Since there's multiple solutions to this, I cacluated one set of solutions anchoring on the current blockchain size and a second set of solutions anchoring on the current throughput. They ended up having somewhat similar numbers. Using the current blockchain size of 415 million transactions as the anchor point, the maximum throughput would be 4.9 tps or the equivalent of about 1.4 MB blocks. Using the current throughput of about [4.2 transactions/second](https://www.blockchain.com/en/charts/transactions-per-second?timespan=all&daysAverageString=7) (which translates to blocks of about 1.2 MB) as the anchor point, the maximum blockchain size would be about 530 million transactions (about 25% more than the blockchain contains). This means that by using assumevalid to avoid validating old transactions, Bitcoin is currently at a healthy size and growth rate as far as transaction processing is concerned.
 
 ## Ongoing Transaction Download & Upload
 
-Our 90th percentile users need to download and upload blocks and their transaction information on an ongoing basis. Currently, nodes transmit every validated transaction to their connections as [inv messages](https://en.bitcoin.it/wiki/Protocol_documentation#inv) (transaction inventory messages), which encode transaction identification info in about 36 bytes each. This method of communication means that every connection you relay to increases your bandwidth usage.
+Our 90th percentile users need to download and upload blocks, including their transaction information, on an ongoing basis. Currently, nodes transmit every validated transaction to their connections as [inv messages](https://en.bitcoin.it/wiki/Protocol_documentation#inv) (transaction inventory messages), which encode transaction identification info in about 36 bytes each. This method of communication means that every connection you relay to increases your bandwidth usage.
 
-Currently by default, the core Bitcoin client makes 8 outgoing connections to peers, and nodes with a publicly accessible port accept up to 125 incomming connections. The number of connections each public node needs to make available can be given by:
+Currently by default, the core Bitcoin client makes 8 outgoing connections to peers, and nodes with a publicly accessible port accept up to 125 incoming connections. The number of connections that each public node needs to make available can be given by:
 
 `publicNodePercent*publicNodeConnections > outgoingConnections`
 
@@ -167,7 +205,9 @@ Therefore the maximum number of transactions/second can be given by:
 
 `maxTps = bandwidth/(invSize*connections + 2*transactionSize)`
 
-The maximum transactions per second that meet the goals for our 90th percentile users is 10 tps, which is an equivalent blocksize of 3 MB, so we're within limits at the moment. Our 10th percentile users have many more connections they need to serve than our 90th percentile users, but they're still much better off than the 90th percentile users, also well within limits at a max of 152 tps or an equivalent of 43 MB blocks.
+The maximum transactions per second that meet the goals for our 90th percentile users is 10 tps, which is an equivalent blocksize of 3 MB, so we're within limits at the moment.
+
+Because our 10th percentile need to have an average of 80 incoming connections each, they have many more connections they need to serve than our 90th percentile users. However they also have much more machine resources so they end up being better off than the 90th percentile users, and are also well within limits at a max of 152 tps or an equivalent of 43 MB blocks.
 
 ## Ongoing Validation
 
@@ -179,7 +219,7 @@ Our 90th percentile users need to validate transasctions on an ongoing basis. Th
 
 Since for the purposes of this analysis, our 90th percentile users don't need to upload historical blocks to newly syncing peers, they can simply use the pruning option to discard old blocks as soon as they're validated, and the only major data needed would be the UTXO set. As of 2017, the UTXO set required [about 3GB](https://eprint.iacr.org/2017/1095.pdf), well within the capabilities of our 90th percentile user. Since the number of transaction mined per second is not directly related to UTXO growth, there's no clear way to relate these. However, the UTXO set size grew at a rate of [about 75%/year](https://charts.bitcoin.com/bch/chart/utxo-set-size#74) between 2015 and 2017, and that has been somewhat representative, despite the drop in UTXO size in the last year. The trend does look like its slowing, so it is probably safe to assume a near-term growth of 50%/year. At that rate its size would pass the target 12.8GB of disk space (10% of the amount our 90th percentile user has) within 4 years. So this is definitely something to watch out for becoming a problem in the near future.
 
-However, another thing to note is that the UTXO set can't grow in megabytes faster than the blockchain grows. So the maximum block size is a limiting factor on the maximum growth of the UTXO set, although that is unlikely to affect growth of the UTXO set for a while.
+However, another thing to note is that the UTXO set can't grow in megabytes faster than the blockchain grows. So the maximum block size is a limiting factor on the maximum growth of the UTXO set, although that is unlikely to affect growth of the UTXO set for probably 10 years.
 
 ## Blockchain & UTXO disk usage
 
@@ -197,7 +237,7 @@ With these assumptions, the maximum UTXO size is already higher than limits for 
 
 Here's a summary of the above analyis of the various bottlenecks Bitcoin currently has. This list is in order of tightest to widest bottleneck in Bitcoin throughput.
 
-![summaryOfCurrentStatus.png](.\summaryOfCurrentStatus.png)
+![summaryOfCurrentStatus.png](summaryOfCurrentStatus.png)
 
 Ignoring the first item, there are 4 major bottlenecks causing Bitcoin to be unable to support our 90th percentile users, and 1 bottleneck that doesn't meet goals for our 10th percentile users. This leads me to conclude that Bitcoin is currently not in a secure state. We're currently operating at about 10 times the throughput that can be safely handled.
 
@@ -215,7 +255,7 @@ Updated Goals:
 
 I. 90% of Bitcoin users should be able to start a new node and sync with the chain from the assumevalid point within 1 week using at most 75% of the resources of a machine they already own, and be able to download the historical chain before the assumevalid point and validate the UTXO set, using at most 10% of the resources of a machine they already own.
 
-The maximum size of the after-assumevalid blockchain that can be downloaded by our 90th percentile users at time t can be found using the following parameters (see Apendex D for derivation):
+The maximum size of the after-assumevalid blockchain that can be downloaded by our 90th percentile users at time t can be found using the following parameters (see [Appendix D](#appendix-d---derivation-of-equations-for-assumeutxo) for derivation):
 
 `maxDownload = 94*1.25^t*(7*24*60*60)/10^6 GB`
 
@@ -354,7 +394,7 @@ Once we produce all these technologies, we can expect to be able to safely proce
 
 We should remember that people like Luke Jr are right to worry about our Bitcoin's curent state. It is unsafe to raise the maximum block size at the moment until new scaling technologies are incorporated into Bitcoin. In fact, it was unsafe to have increased the maximum blocksize during segwit. We can build a safe currency in the near future, but for now we need to be patient and understand the limitations of the technology we have today.
 
-# Apendix A - Derivation of Initial Block Download equations
+# Appendix A - Derivation of Initial Block Download equations
 
 The time it will take to download the necessary parts of the blockchain at a given date can be given by:
 
@@ -389,7 +429,7 @@ The maximum throughput our 90th percentile users can manage at that maximum size
 `size' = 94 KB/s * ln(1.25) * 1.25^t * 1 week = 94*1.25^t*(7*24*60*60)/(365*24*60*60) KB/s`
 
 
-# Apendix B - Derivation of the Equation For Initial Sync Validation (without assumevalid)
+# Appendix B - Derivation of the Equation For Initial Sync Validation (without assumevalid)
 
 The equation to find how many transactions we can process to meet a given sync-time requirement is:
 
@@ -418,7 +458,7 @@ Plugging in the assumptions we're using gives us:
 `transactions' = 200 * ln(1.17) * 1.17^t * (7*24*60*60)`
 
 
-# Apendix C - Derivation of the Equation For Initial Sync Validation (using assumevalid)
+# Appendix C - Derivation of the Equation For Initial Sync Validation (using assumevalid)
 
  The equations dictating long it will take a node to sync the chain using assumevalid is similar to the one without assumevalid:
 
@@ -451,7 +491,7 @@ This equation can be simplified somewhat by integrating both sides, but you end 
 And that's not solvable for x (transactions), because there are multiple solutions for transactions and transactions', meaning that the max tps depends on how many transactions you start with in the blockchain. So instead I decided to solve the numbers with guess and check in excel.
 
 
-# Apendix D - Derivation of equations for assumeutxo
+# Appendix D - Derivation of equations for assumeutxo
 
 The time it will take to download the necessary parts of the blockchain with assumeutxo at a given date can be given by:
 
