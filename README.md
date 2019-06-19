@@ -34,7 +34,7 @@ Debate about growth of Bitcoin's blockchain has raged for years now. Some want t
 - [Future throughput and capacity needs](#future-throughput-and-capacity-needs)
   * [UTXO Expectations](#utxo-expectations)
   * [Lightning Network contingencies](#lightning-network-contingencies)
-  * [End Game](#end-game)
+- [Future throughput](#future-throughput)
 - [Conclusions](#conclusions)
 - [Appendix A - Derivation of Initial Block Download equations](#appendix-a---derivation-of-initial-block-download-equations)
 - [Appendix B - Derivation of the Equation For Initial Sync Validation (without assumevalid)](#appendix-b---derivation-of-the-equation-for-initial-sync-validation-without-assumevalid)
@@ -243,55 +243,59 @@ Ignoring the first item, there are 4 major bottlenecks causing Bitcoin to be una
 
 # Potential Solutions
 
-There are a number of proposed solutions to the above Bitcoin bottlenecks. Some solutions given here are full proposals, and some are only hypothetical half-baked ideas. But this list should be able to give some idea of the future prospects of Bitcoin throughput. I did a deep dive on Assume UTXO, but decided only to mention other proposals and do an analysis of where Bitcoin could get to if all the solutions are implemented and work out as planned.
+There are a number of proposed solutions to the above Bitcoin bottlenecks. Some solutions given here are full proposals, and some are only hypothetical half-baked ideas. But this list should be able to give some idea of the future prospects of Bitcoin throughput. I did a deep dive on Assume UTXO, but decided only to mention other proposals and then do a deeper analysis of where Bitcoin could get to if all the solutions are implemented and work out as planned.
 
 ## Assume UTXO
 
-Assumeutxo is a [proposed upgrade](https://github.com/bitcoin/bitcoin/issues/15605) to Bitcoin where the software source code would include an "assumed good" hash of the UTXO set at a given blockheight, similar to what assumevalid does. Once the software has validated forward from the assumevalid point, it will download the historical chain and validate the UTXO set by building from the genesis block. However, while its downloading and building the UTXO set for validation, it will assume a downloaded UTXO snapshot is good as long as it matches the UTXO hash hardcoded in their software.
+Assumeutxo is a [proposed upgrade](https://github.com/bitcoin/bitcoin/issues/15605) to Bitcoin where the software source code would include an "assumed good" hash of the UTXO set at a given blockheight, similar to what assumevalid does. The node will download the UTXO set (or chunks of it) from some other node (or nodes) on the network, and verify that the UTXO set matches the hash hardcoded into the software. Once the software has validated forward from the assumevalid point, it will download the historical chain and validate the UTXO set by building from the genesis block. However, while its downloading and validating the historical data, it will use its assumed good UTXO set.
 
-This feature would allow us to relax some of our goals. Instead of requiring 90% of users to be able to download the blockchain and build the UTXO set in 1 week, we can have different goals for downloading and processing the blocks from the assumevalid point versus downloading historical blocks and verifying the assumeutxo hash. Since the assumeutxo hash is something that would be audited as part of the rest of the software review process and so using it requires no more trust than any other part of the software, that process is less critical and can be allowed to take longer without much downside. I'm going to choose 2 months for that historical validation, which would mean that in the unlikely case that the UTXO hash is invalid, the 90th percentile user would find out about it at latest 2 months after beginning, tho it would probably be far more likely for them to find out through social channels rather than through the software at that point.
+This feature would allow us to relax some of our goals. Instead of requiring 90% of users to be able to download the blockchain and build the UTXO set in 1 week, we can have different goals for downloading and processing the blocks from the assumevalid point versus downloading historical blocks and verifying the assumeutxo hash. The assumeutxo hash is something that would be audited as part of the rest of the software review process, and so using it requires no more trust than any other part of the software. Because of that, the historical validation process is less critical and can be allowed to take longer without much downside. I'm going to choose 2 months for that historical validation, which would mean that in the unlikely case that the UTXO hash is invalid, the 90th percentile user would find out about it at latest 2 months after beginning, tho it would probably be far more likely for them to find out through social channels rather than through the software at that point.
 
 Updated Goals:
 
 I. 90% of Bitcoin users should be able to start a new node and sync with the chain from the assumevalid point within 1 week using at most 75% of the resources of a machine they already own, and be able to download the historical chain before the assumevalid point and validate the UTXO set, using at most 10% of the resources of a machine they already own.
 
-The maximum size of the after-assumevalid blockchain that can be downloaded by our 90th percentile users at time t can be found using the following parameters (see [Appendix D](#appendix-d---derivation-of-equations-for-assumeutxo) for derivation):
+The maximum size of the after-assumevalid blockchain that can be downloaded by our 90th percentile users at year y can be found using the following parameters (see [Appendix D](#appendix-d---derivation-of-equations-for-assumeutxo) for derivation):
 
-`maxDownload = 94*1.25^t*(7*24*60*60)/10^6 GB`
+`maxDownload = 94*1.25^y*(7*24*60*60)/10^6 GB`
 
-The maximum throughput that makes the after-assumevalid download stay within limits for our 90th percentile users can manage at that maximum size at a given time `t` is:
+The maximum throughput that makes the after-assumevalid download stay within limits for our 90th percentile users can manage at that maximum size is:
 
 `maxChainSize' ~= (downloadSize - utxoSize)/(7*24*60*60 seconds)`
 
-The maximum size of the historical blockchain that our 90th percentile users can download at time tis:
+The maximum size of the historical blockchain that our 90th percentile users can download at year `y` is:
 
-`maxDownload = 12.5*1.25^t*(60*24*60*60)/10^6 GB`
+`maxDownload = 12.5*1.25^y*(60*24*60*60)/10^6 GB`
 
-The maximum throughput our 90th percentile users can manage for the historical download at that maximum size at a given year `t` is:
+The maximum throughput our 90th percentile users can manage for the historical download at that maximum size at a given year `y` is:
 
-`size' = 12.5*ln(1.25)*1.25^t*(60*24*60*60)/1000^2 GB/year`
+`size' = 12.5*ln(1.25)*1.25^y*(60*24*60*60)/1000^2 GB/year`
+
+Here is how that updates our bottlenecks:
+
+![assumeUtxoBottleneckUpdate.png](assumeUtxoBottleneckUpdate.png)
 
 With Assume UTXO, we can eliminate two of the worst bottlenecks, while adding 4 new bottlenecks that aren't quite as bad, but still don't all meet goals. Three of the new bottlenecks give a maximum blocksize of between 1 and 2 MB, which is still below our current maximum block size. One of the four new bottlenecks barely meets goals at 2.2 MB max blocksize.
 
 ## Erlay
 
-[Erlay](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-May/016994.html) improves transaction propagation to scale nearly linearly with number of transactions, rather than scaling lineary with transactions X connections. This would allow a lot more resilience to eclipse and sybil attacks by making it possible for nodes to have many more connections than they do now. A node only needs one connection to an honest node on the network to be safe from eclipse.
+[Erlay](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-May/016994.html) improves transaction propagation to scale nearly linearly with number of transactions, rather than scaling linearly with transactions X connections. This would allow a lot more resilience to eclipse and sybil attacks by making it possible for nodes to have many more connections than they do now. Remember that a node only needs one connection to an honest node on the network to be safe from eclipse.
 
 In order to remain resistant to eclipse and sybil attacks, every node must have enough connections to the network to ensure a high probability of connecting to the honest network. A reasonable lower bound on the probability of being eclipsed by an attacker depends on the percentage of the network controlled by the attacker and the number of outgoing connections a node makes. 
 
-Let's say our goal was to require an attacker to have only 1 chance in 10,000 to eclipse a target if they controlled half the addresses in the system.
+The relationship between number of `outgoingConnections`, the `ratio` of attacker's nodes to total nodes, and the `changeofEclipse` is as follows:
 
-`r^connections = p`
+`ratio^outgoingConnections = changeOfEclipse`
 
-`connections = log_r(p)`
+`outgoingConnections = log(changeOfEclipse)/log(ratio)`
 
-This means that to achieve our goal stated above (where `p=1/10,000` and `r=0.5`, every node would need at least 14 connections to the network. 20 connections would give 1 change in 1 million for such an attacker. Erlay could make this scenario a reality.
+Let's say our goal was to require an attacker to have only 1 chance in 10,000 to eclipse a target if they controlled half the addresses in the system. This means that to achieve our goal stated above (where `changeOfEclipse = 1/10,000` and `ratio = 0.5`, every node would need at least 14 outgoing connections to the network. 20 outgoing connections would give 1 chance in 1 million for such an attacker. Erlay could make this scenario a reality.
 
 ## Fraud Proofs
 
-[Fraud proofs](https://scalingbitcoin.org/transcript/tokyo2018/fraud-proofs) are data structures that can prove that a block is invalid. The important case for this is proving the invalidity of a chain with more proof of work. This can be used for:
+[Fraud proofs](https://scalingbitcoin.org/transcript/tokyo2018/fraud-proofs) are data structures that can prove that a block is invalid. This can be used for:
 
-* Alerting SPV nodes that they should ignore a longer chain.
+* Alerting SPV nodes that they should ignore a longer chain (a chain with more proof of work) because it's invalid.
 * Making it cheaper for full nodes to find what part of a chain is invalid.
 
 I'll mention these as part of other proposals below.
@@ -300,35 +304,35 @@ I'll mention these as part of other proposals below.
 
 The current plan for Assume UTXO is to maintain historical download and verification, even if it becomes less important. However, there is little reason why nodes should have to do this.
 
-To get the maximum security from Bitcoin, a person needs to read through the entirety of the source code for every release, have or gain an understanding of every concept used in the system, compare it to the relevant discussion online and claims made by the developers, and finally compile it themselves. If the software is not the reference client (Bitcoin core), then you would also need to compare the software to that reference client (since there is no formal spec). If you don't do all those things, then you are trusting other people to audit the software and alert the community (in a way you would hear about) if something is wrong with the software. Similarly, if you don't download and verify the entire chain, and instead trust the assumevalid utxo height and assumeutxo hash, you must have that same level of trust.
+Let's talk fundamentals. To use Bitcoin in a maximally secure way, a person needs to read through the entirety of the source code for every release, have or gain an understanding of every concept used in the system, compare it to the relevant discussion online and claims made by the developers, and finally compile it themselves. If the software is not the reference client (Bitcoin core), then you would also need to compare the software to that reference client (since there is no formal spec). If you don't do all those things, then you are trusting other people to audit the software and alert the community (in a way that you would hear about) if something is wrong with the software. Similarly, if you don't download and verify the entire chain, and instead trust the assumevalid utxo height and assumeutxo hash, you must have that same level of trust.
 
 For any Bitcoin user that is ok with this near-minimal level of trust, downloading and validating the parts of the blockchain before the assumevalid/assumeutxo marker is unnecessary as no additional trust is given. The vast majority of users don't even have the skills to audit the entirety of the source code, and so ignoring the historical parts of the blockchain is just as secure.
 
 There is an important addition to Assume UTXO that needs to be in place before historical data can be ignored in the worst-case. If a longer but invalid chain is created from before the assumevalid block height, a node would need to validate the longest chain from the branch point (the block both chains share) to the first invalid block. This could be arbitrarily long. In order to prevent newly syncing users from being required to do this, honest nodes would have to be able to produce fraud proofs so the newly syncing node can quickly and cheaply identify and ignore the invalid chain.
 
-If this was done, the worst-case sync time would scale linearly with the transaction throughput rather than scaling linear with blockchain length.
+If this was done, the worst-case sync time would scale linearly with the transaction throughput rather than scaling linear with blockchain length. The enormity of that improvement can't be understated.
 
 ## Accumulators
 
-[Accumulators](https://www.reddit.com/r/BitcoinDiscussion/comments/bz883v/a_short_summary_of_solutions_for_utxo_scaling/) show a lot of promise in nearly eliminating the storage overhead associated with the UTXO set. [Utreexo](https://dci.mit.edu/utreexo) allows nodes to store only a few kilobytes that represent the entire UTXO set. This does come with higher bandwidth requirements, perhaps doubling or tripling the bandwidth. However, necessary bandwidth would only grow logarithmically with the size of the UTXO set, which is a big improvement from the linear growth the UTXO set has for memory right now.
+[Accumulators](https://www.reddit.com/r/BitcoinDiscussion/comments/bz883v/a_short_summary_of_solutions_for_utxo_scaling/) show a lot of promise in nearly eliminating the storage overhead associated with the UTXO set. For example, [Utreexo](https://dci.mit.edu/utreexo) allows nodes to store a representation of the entire UTXO set in only a few kilobytes of data. This does come with higher bandwidth requirements, perhaps doubling or tripling the necessary bandwidth. However, necessary bandwidth would only grow logarithmically with the size of the UTXO set, which is a big improvement from the linear growth the UTXO set has for memory right now.
 
-Additionally, a lot of bandwidth could be saved by using a little bit of memory. Many levels of the merkle tree could be stored in memory to limit how much merkle proof data is necessary to include in transactions (reducing bandwidth requirements). Using just 100 MB of memory for this purpose would cut the necessary extra bandwidth almost in half.
+Additionally, a lot of bandwidth could be saved by using a little bit of memory. Many levels of Utreexo's Merkle forest could be stored in memory to reduce the amount of Merkle proof data necessary to include alongside transactions (in turn reducing bandwidth requirements). Using just 100 MB of memory for this purpose would cut the necessary extra bandwidth almost in half.
 
-Other solutions like RSA or Eliptic Curve based accumulators could eliminate growth of bandwidth in relation to UTXO set size entirely. RSA accumulators have inclusion proofs of constant size no matter how big the UTXO set is. They can also do proof of non-inclusion (aka proof of completeness) which could allow SPV nodes to eliminate the possibilty of being lied to by omission. Eliptic curve accumulators could have the same properties as RSA accumulators but with a much smaller footprint.
+Other solutions like RSA or Eliptic Curve based accumulators could eliminate growth of bandwidth in relation to UTXO set size entirely. RSA accumulators have inclusion proofs of constant size no matter how big the UTXO set is. They can also do proof of non-inclusion (aka proof of completeness) which could allow SPV nodes to eliminate the possibilty of being lied to by omission. Eliptic curve accumulators could have the similar properties but with a much smaller footprint. These are active areas of research.
 
 ## Upgraded SPV Nodes
 
-SPV nodes have a bunch of problems at the moment. But luckily, most of those can be addressed with clever technology.
+SPV nodes have a bunch of problems at the moment. But luckily, most of those can be addressed clever technology.
 
-[Neutrino](https://blog.lightning.engineering/posts/2018/10/17/neutrino.html) is one of those technologies. It isn't a scaling solution per se, but it does help SPV solve the privacy problem. The Bloom filters currently used for SPV have privacy problems, because SPV clients send requests to SPV servers that give away what specific transactions they're interested in. Neutrino can help this while maintaining a low overhead for light clients - each filter needed for the protocol is only about 15 KB per (2 MB) block. An SPV client would determine which blocks have transactions they care about, and request entire blocks. By requesting different blocks from different SPV servers, an SPV client can have a reasonable liklihood of maintaining privacy. In a sybil or eclipse attack, however, there's still possibility for deanonymization via correlation of requested blocks. But the risk is much lower than with the bloom filters that are used today.
+[Neutrino](https://blog.lightning.engineering/posts/2018/10/17/neutrino.html) is one of those technologies. It isn't a scaling solution per se, but it does help SPV solve the privacy problem. The Bloom filters currently used for SPV have privacy problems, because SPV clients send requests to SPV servers that give away what specific transactions they're interested in. Neutrino are much more private while maintaining a low overhead for light clients - each filter needed for the protocol is only about 15 KB per 2 MB block. An SPV client would determine which blocks have transactions they care about, and request entire blocks. By requesting different blocks from different SPV servers, an SPV client can have a reasonable liklihood of maintaining privacy. In a near-sybil or near-eclipse attack, however, there's still possibility for deanonymization via correlation of requested blocks. But the risk is much lower than with the bloom filters that are used today.
 
 Neutrino also solves the problem of being lied to by omission. To allow light clients to trustlessly download the block filters, those filters need to be commited into the block by miners. That way an SPV node can check that block filters they're given match the commitment in the block. Since the filters are committed to in the block, SPV nodes know for sure which blocks they want, and they can know they're being eclipsed if all their connections refuse to give them the blocks they need to verify their transactions.
 
 Neutrino also solves the problem of SPV server cost, since SPV clients would simply be requesting blocks (and far fewer of them) from full nodes, there's not a whole lot of work that needs to be done - just a little additional bandwidth.
 
-SPV nodes could also proected themselves from majority hard forks. If some of their connections are sending them blocks on a chain with less proof of work, they can ask those nodes to prove that the longer chain is invalid. Those nodes could prove it using fraud proofs, thus allowing the SPV nodes to successfully avoid a majority hard fork.
+Fraud proofs can help SPV nodes protect themselves from majority hard forks. If some of their connections are sending them blocks on a chain with less proof of work, they can ask those nodes to prove that the longer chain is invalid. Those nodes could prove it using fraud proofs, thus allowing the SPV nodes to successfully (and cheaply) avoid a majority hard fork.
 
-The above solves almost all the problems with SPV nodes, bringing them up to almost full security with full-nodes. However, the fundamental downside still remains - there are more attacks that can be done on an SPV node that has been eclipsed than a full node that has been eclipsed. A full node that has been eclipsed can have its outgoing or incoming transactions censored and can be double-spent on more easily than in a non-eclipse situation (tho perhaps only 2 or 3 times more easily at most). A light client (using Neutrino) that has been eclipsed can be tricked into accepting transactions that don't follow the rules (with about the same level of difficulty as double-spending on an eclipsed full-node). So it takes the same amount of effort to attack an upgraded SPV node as it does to attack a full node, but slightly more can be done to an SPV node once the necessary work has been done to achieve that attack.
+The above solves almost all the problems with SPV nodes, bringing their security up to almost full parity with full-nodes. However, the fundamental downside still remains - there are more attacks that can be done on an SPV node that has been eclipsed than a full node that has been eclipsed. A full node that has been eclipsed can have its outgoing or incoming transactions censored and can be double-spent on more easily than in a non-eclipse situation (tho perhaps only 2 or 3 times more easily at most). S light client (using Neutrino) that has been eclipsed, in addition to having those issues, can be tricked into accepting transactions that don't follow the rules (with about the same level of difficulty as double-spending on an eclipsed full-node). So it takes the same amount of effort to attack an upgraded SPV node as it does to attack a full node, but slightly more can be done to an SPV node once the necessary work has been done to achieve that attack.
 
 If these limitations are acceptable to most people, then most people can safely use SPV nodes as long as a critical mass of users are still running full nodes.
 
@@ -338,13 +342,11 @@ Bitcoin as it is now isn't actually distributed. Replicated would be a better te
 
 This doesn't need to be the bottleneck it might appear. What is important for full nodes is that they've verified past history, and that they can download the past history when they need it. It should be relatively simple to spread out blockchain storage in the distributed network. If every full node on the network stored 1/1000th of the blockchain, then a 5.5 TB blockchain would just require 5.5 GB per full node - very manageable even on the oldest of machines these days.
 
-And if software included hard-coded checkpoints every once in a while (eg say new bitcoin software versions hardcoded a block 6 months in the past), it would mean blocks before that checkpoint could be simply deleted from the network (offline archives would of course still keep the chain for posterity). That would mean that storage requirement would remain constant, rather than growing indefinitely.
+Even light clients could choose to take part in replication of a shard or two. Any node, full or light, could choose to store a shard of the blockchain history, then serve Neutrino requests for that data. Similar sharding could be done with UTXO accumulators or other storage requirements. Nodes could also store shards of UTXO set at an assumevalid point and serve requests from newly spinning up full nodes. A light node would verify that they have the right UTXO shard by checking it against a UTXO commitment in the blockchain.
 
-With enough sharding, blockchain storage would cease to be a scalability concern. Similar sharding could be done with UTXO accumulators or other storage requirements. Even light clients could choose to take part in replication of a shard or two.
+With enough sharding, blockchain storage would cease to be a scalability concern. The question would be how to ensure that each shard has enough replication. Additionally, the finer the sharding, the greater the danger of DOS attacks that target a particular shard. Both of these problems would have to be solved for distributed data storage to become a reality.
 
-Any node, full or light, could choose to store a shard of the blockchain history, then serve Neutrino requests for that data. Similarly, any node could choose to store a shard of UTXO set and serve requests from newly spinning up full nodes. A light node would verify that they have the right UTXO shard by checking it against a UTXO commitment in the blockchain.
-
-The question would be how to ensure that each shard has enough replication. Additionally, the finer the sharding, the greater the danger of DOS attacks that target a particular shard. Both of these problems would have to be solved for distributed data storage to become a reality.
+Distributed data storage could other applications in the Bitcoin world as well. For example, backup of lightning commitments comes to mind.
 
 # Future throughput and capacity needs
 
@@ -362,7 +364,7 @@ Let's say that 8 billion people have an average of 3 channels each with 1 month 
 
 A scenario where all channels have a cheater and need to close seems pretty unlikely. But a scenario where 10% of channels are closed "just in case" doesn't seem so far fetched. This would still be 460 transactions/second for a month in order to ensure all channels can be closed without any cheaters coming out ahead.
 
-## End Game
+# Future throughput
 
 Using the above techniques, we could theoretically eliminate disk storage and memory as bottlenecks, and substantially reduce the number of nodes that would need to use significant bandwidth and CPU power to download and verify transactions.
 
@@ -378,17 +380,19 @@ Nodes would fall into two tiers:
 
 2. Lite nodes that validate all blockchain headers, but not all the transactions.
 
-Only full nodes would be trusted to serve block headers and unconfirmed transactions. Nodes would monitor connections they have that claim to be full nodes, and ensure that those nodes pass them all data their other full node connections do, and ensure they don't pass invalid data. Miners should randomly create invalid transactions that are specially marked to be understood as intentionally fake transactions, and nodes that blindly forward those transactions or blocks containing one can be detected and dropped.
-
-Assume UTXO would be used in combination with fraud proofs to eliminate the need for downloading or validating historical parts of the blockchain. Erlay would be used to reduce bandwidth consumption to be almost independent from the number of connections. Utreexo (or more advanced accumulator) would be used to store, in-memory, the entire set of information needed to validate transactions that include merkle proofs from UTXO shards.
+Assume UTXO would be used in combination with fraud proofs to eliminate the need for downloading or validating historical parts of the blockchain. Erlay would be used to reduce bandwidth consumption to be almost independent from the number of connections. Utreexo (or a more advanced accumulator) would be used to store, in-memory, the entire set of information needed to validate transactions as long as those transactions come with inclusion proofs.
 
 In a situation where a longer but invalid chain is created, light nodes would be alerted by their full-node connections with fraud proofs.
 
-In a situation where many lightning channels must close, full nodes and miners can go into emergency mode where a higher than normal number of transactions per second can be mined (similarly to Monero's dynamic block size) and full nodes can be alterted that there is high stress on the network temporarily. This can help clear transactions in the network so that its far less likely that any lightning channels will close with out-of-date committment contracts. Since an event like this is unlikely to happen frequently, it should be acceptable to use more resources to protect the system on the occasion its needed.
+In a situation where many lightning channels must close, full nodes and miners can go into emergency mode where a higher than normal number of transactions per second can be mined (similarly to Monero's dynamic block size) and full nodes can be alterted that there is high stress on the network temporarily. This can help clear transactions in the network so that its far less likely that any lightning channels will close with out-of-date committment contracts. Since an event like this is unlikely to happen frequently, it should be acceptable to use more resources to protect the system in a situation where that's needed.
+
+Here's a summary of how all these advancements would changes our limits:
+
+![summaryOfFutureLimits.png](summaryOfFutureLimits.png)
 
 # Conclusions
 
-We are currently well into the dangerzone of transaction throughput. Bitcoin cannot securely handle the amount of transactions it is currently processing. However, the good news is that ideas that have already been thought through can substantially scale Bitcoin to bring us back into a secure state. This will likely take many years to reach, but its a very heartening thing that we have so much headroom to improve Bitcoin from its already impressive position.
+We are currently well into the danger zone of transaction throughput. Bitcoin cannot securely handle the amount of transactions it is currently processing. However, the good news is that ideas that have already been thought through can substantially scale Bitcoin to bring us back into a secure state. This will likely take many years to reach, but its a very heartening thing that we have so much headroom to improve Bitcoin from its already impressive position.
 
 Once we produce all these technologies, we can expect to be able to safely process upwards of 200 transactions per second on-chain. If these technologies take 10 years to come out, machines and connections should be powerful enough at that point to process more than 1000 TPS, nearing the level of Visa (~1700 tps). However, remember that on-chain transactions are costly for everyone and shouldn't be taken for granted. In conjunction with the lightning network, transctions per second are virtually infinite, while number of users becomes the limit. Once all these technologies are in place, achieving maximum lightning network security (via the ability to clear all lightning channels) should be achievable in much less than 10 years.
 
