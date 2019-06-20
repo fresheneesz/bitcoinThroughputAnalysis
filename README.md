@@ -8,11 +8,6 @@ In this document, I will analyze the major throughput bottlenecks that currently
 
 - [Overview](#overview)
 - [The State of Available Machine Resources](#the-state-of-available-machine-resources)
-  * [Bandwidth](#bandwidth)
-  * [Hard drive space](#hard-drive-space)
-  * [CPU speed](#cpu-speed)
-  * [Memory](#memory)
-  * [An aside about technological growth](#an-aside-about-technological-growth)
 - [Assumptions](#assumptions)
 - [Light nodes](#light-nodes)
 - [Bottlenecks](#bottlenecks)
@@ -38,10 +33,7 @@ In this document, I will analyze the major throughput bottlenecks that currently
   * [Lightning Network contingencies](#lightning-network-contingencies)
 - [Future throughput](#future-throughput)
 - [Conclusions](#conclusions)
-- [Appendix A - Derivation of Initial Block Download equations](#appendix-a---derivation-of-initial-block-download-equations)
-- [Appendix B - Derivation of the Equation For Initial Sync Validation (without assumevalid)](#appendix-b---derivation-of-the-equation-for-initial-sync-validation-without-assumevalid)
-- [Appendix C - Derivation of the Equation For Initial Sync Validation (using assumevalid)](#appendix-c---derivation-of-the-equation-for-initial-sync-validation-using-assumevalid)
-- [Appendix D - Derivation of equations for assumeutxo](#appendix-d---derivation-of-equations-for-assumeutxo)
+- [Appendix](#appendix-a---derivation-of-initial-block-download-equations)
 
 
 # Overview
@@ -135,7 +127,7 @@ For the purposes of this analysis, I'm going to use the following estimates:
 
 Most of the bottom 10% that don't fall within these goals can be assumed to use SPV. An SPV node can give its user almost as much security as a full node, even tho it doesn't help the rest of the network.
 
-# Light nodes
+# SPV Nodes
 
 One obvious question is: why do we need or want most people to run full nodes? One can imagine that since SPV nodes are so cheap to run, maybe it would be acceptable if most people simply used SPV. However there are a number of problems with this as the moment:
 
@@ -372,9 +364,9 @@ The lightning network can be expected to help Bitcoin scale by an enormous amoun
 
 Since lightning network security relies on on-chain transactions to enforce lightning comittments, its important that the network be able to handle the situation where a flood of channels are closed at once. This situation could basically resemble a bank run, with users trying to close their channel before their channel partner does something nefarious (like submit an out of date commitment). The worst case scenario is that every channel has one partner that tries to cheat.
 
-Let's say that 8 billion people have an average of 3 channels each with 1 month time locks, and they all need to close. The network would have to support 4630 transactions/second for a whole month.
+A scenario where all channels have a cheater and need to close seems pretty unlikely. But a scenario where say 10% of channels are closed "just in case" doesn't seem so far fetched. If its widely known that the Bitcoin network doesn't have the capcity to clear all lightning channels quick enough to ensure that all channels that are watching can expect to get their broadcast commitment transactions into the blockchain, many people may panic and close their channel prematurely if the blockchain becomes congested, which in turn casues more congestion and more panic.
 
-A scenario where all channels have a cheater and need to close seems pretty unlikely. But a scenario where 10% of channels are closed "just in case" doesn't seem so far fetched. This would still be 460 transactions/second for a month in order to ensure all channels can be closed without any cheaters coming out ahead.
+Let's say that 8 billion people have an average of 3 channels each with 1 month time locks, and they all need to close. The network would have to support 4630 transactions/second for a whole month. If only 10% of channels want to close in that time, this would still be 460 transactions/second for a month in order to ensure all channels can be closed without any cheaters coming out ahead.
 
 # Future throughput
 
@@ -482,7 +474,7 @@ Plugging in the assumptions we're using gives us:
 
 With the addition of:
 
-`transactions = assumedValidTr*(1-assumeValidSpeedup) + nonAssumedValidTr
+`transactions = assumedValidTr*(1-assumeValidSpeedup) + nonAssumedValidTr`
 
 `nonAssumedValidTr = transactions' * assumeValidBlockTime`
 
