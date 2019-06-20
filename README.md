@@ -147,7 +147,7 @@ SPV nodes are not the solution to scaling at the moment, tho they may help scale
 
 # Bottlenecks
 
-These bottlenecks are all calculated in [a spreadsheet](bottlenecks.xlsx). I'll summarize the findings of those calculations below.
+These bottlenecks are all calculated in [a spreadsheet](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/bottlenecks.xlsx?raw=true). I'll summarize the findings of those calculations below.
 
 ## Initial Block Download
 
