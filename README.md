@@ -4,7 +4,10 @@
 
 Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling). However, I've found little analysis that attempts to analyze all the major bottlenecks in order to gain a broader picture of where we stand and the hurdles ahead. LukeJr gave [results of his analysis](https://www.youtube.com/watch?v=CqNEQS80-h4) that lowering the blocksize maximum to 300KB would allow us to maintain the current sync time, and would allow sync time to decrease slowly over the years. But [his script](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/LukeJr's%20sync-time%20script.py) only calculates one bottleneck.
 
+In this document, I will analyze the major throughput bottlenecks that currently constrain Bitcoin's safe throughput capacity and look into what throughput capacity we can expect in the future.
+
 - [Overview](#overview)
+- [The State of Available Machine Resources](#the-state-of-available-machine-resources)
   * [Bandwidth](#bandwidth)
   * [Hard drive space](#hard-drive-space)
   * [CPU speed](#cpu-speed)
@@ -12,7 +15,6 @@ Debate about growth of Bitcoin's blockchain has raged for years now. Some want t
   * [An aside about technological growth](#an-aside-about-technological-growth)
 - [Assumptions](#assumptions)
 - [Light nodes](#light-nodes)
-- [The State of Available Machine Resources](#the-state-of-available-machine-resources)
 - [Bottlenecks](#bottlenecks)
   * [Initial Block Download](#initial-block-download)
   * [Initial Sync Validation (without assumevalid)](#initial-sync-validation-without-assumevalid)
@@ -56,25 +58,29 @@ We don't need the people with the worst equipment to mine (#1), and we might not
 
 These considerations are all affected by transaction throughput and blocksize.
 
-\#1 is important to bitcoin, but is the least affected by increased block size, since miners are generally either large powerful server farms or large mining pools. Miners are unlikely to drop out of bitcoin even if there were many orders of magnitude more transactions (as long as fees held up).
+\#1 is important to bitcoin, but may be the least affected by increased block size, since miners are generally either large powerful server farms or large mining pools. Miners are unlikely to drop out of bitcoin even if there were many orders of magnitude more transactions (as long as fees held up). However, there is the issue of block propagation time, which has only been partially mitigated with advancements like [compact blocks](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/).
 
-\#2 is important, but we don't need everyone to do it - just a critical mass. As long as even 5% of the network is honest and passes around data, the network can be supported during normal operation.
+\#2 is important, but we don't need everyone to do it - just a critical mass. As long as even a small percentage of the network is honest and passes around data, the network can be supported during normal operation. The smaller this percentage, however, the more load nodes that do pass around this data must take on.
 
-\#3 This one is most affected by blocksize changes. SPV nodes are very tempting as they come up almost instantly, don't require any major harddrive space or processor usage, and also give close-to-full-node security using SPV proofs. So the more painful it is to be a full node, the more people are going to use an SPV node instead.
+\#3 This one is most affected by blocksize changes. SPV nodes are very tempting as they come up almost instantly, don't require any major harddrive space or processor usage, and also give security guarantees somewhat close to full nodes. So the more painful it is to be a full node, the more people are going to use an SPV node instead.
 
 \#4 In the case of a hard fork, SPV nodes won't know what's going on. They'll blindly follow whatever chain their SPV server is following. If enough SPV nodes take payments in the new currency rather than the old currency, they're more likely to acquiesce to the new chain even if they'd rather keep the old rules.
 
 \#5  is relevant because the primary tradeoff for this is that increasing the number of outgoing connections each node makes reduces their suceptibility, but this also increases network load for each node, especially if many nodes are leeching data but not seeding.
 
-Some of the affects of a larger blocksize:
+Some of the effects of a larger blocksize:
 
-A. Users would need to store more data on their harddrive.
+A. Users would need to store more data on their harddrive. This includes both nodes that store the historical blockchain as well as pruning nodes that need to store the UTXO set, since a larger blocksize is likely to mean more growth of the UTXO set.
 
 B. Users would need to use more bandwidth to download and upload more data from and to their peers.
 
 C. Users would need to use more of their computer's CPU time and memory to verify transactions.
 
 D. Users who can't do A, B, or C (or feel its not worth it) would not be able to run a full node, and would instead use a less intensive node like an SPV node.
+
+# The State of Available Machine Resources
+
+I will choose system requirements for 90% of the users and for the top 10% of users, but first we need to understand what machine resources are available to people around the world.
 
 ## Bandwidth
 
@@ -135,21 +141,17 @@ One obvious question is: why do we need or want most people to run full nodes? O
 
 * **SPV nodes have [privacy problems](https://eprint.iacr.org/2014/763.pdf)** related to Bloom filters.
 * **SPV nodes can be [lied to by omission](https://bitcoin.stackexchange.com/questions/36643/thin-client-remote-node-lying-through-omission)**.
-* **SPV [doesn't scale well](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim) for SPV servers** that serve SPV light clients.
+* **SPV nodes have a low number of connections**. Most SPV clients only make four connections to SPV servers.
+* **SPV [doesn't scale well](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim) for SPV servers** that serve SPV light clients. A fix for this particular problem should appear relatively soon (Neutrino).
 * **Light clients don't support the network.** They don't validate blocks or transactions (other than SPV proofs they're passed) so they also don't pass around transactions or block data. However, they do consume resources. This is ok as long as we have a critical mass that do support the network (which is why I chose 10% as the fraction of nodes that do that). But if too big a fraction of the network consists of SPV nodes, then we won't reach that critical mass of full nodes that can adequately support the network.
 * **SPV nodes don't know that the chain they're on only contains valid transactions.** They can validate SPV proofs sent to them about transactions they query SPV servers for, and they validate the headers of the longest chain, but if the longest chain contains invalid transactions, an SPV node won't know that. In the case that a majority decide to change the rules of bitcoin in a dangerous way, SPV nodes will blindly follow the new rules as long as they can still validate their SPV proofs. So for a healthy level of decentralization and user-level agency in consensus rules, not too much of the network should consist of nodes that are suceptible to that kind of majority consensus rules change.
-* Light clients are fundamentally **more vulnerable in a successful [eclipse attack](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)** because they don't validate most of the transactions.
+* Light clients are fundamentally **more vulnerable in a successful [eclipse attack](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)** because they don't validate most of the transactions. A full node that has been eclipsed can have its outgoing or incoming transactions censored and can be double-spent on more easily than in a non-eclipse situation (tho perhaps only 2 or 3 times more easily at most). A light client (using Neutrino) that has been eclipsed, in addition to having those issues, can be tricked into accepting many kinds of invalid blocks (with about the same level of difficulty as double-spending on an eclipsed full-node).
 
 The last two are most important. If the vast majority of the network is unable to protect against an invalid longer-chain, then everyone in the network is suceptible to an unwanted and unintentional change of consensus rules, which could potentially leech the majority of wealth onto a less secure branch. SPV nodes don't currently have any way to be aware of most types of consensus rules changes.
 
 Many of these problems can be solved, but the last one is fundamental and cannot be solved. Light nodes will always be more vulnerable in an eclipse attack. Its certainly possible that it can be effectively solved by reducing the likelyhood of an eclipse attack so there's no significant likelyhood of one being successful.
 
 SPV nodes are not the solution to scaling at the moment, tho they may help scale if these problems are solved.
-
-# The State of Available Machine Resources
-
-I will choose system requirements for 90% of the users and for the top 10% of users, but first we need to understand what machine resources are available to people around the world.
-
 
 # Bottlenecks
 
@@ -330,9 +332,11 @@ Neutrino also solves the problem of being lied to by omission. To allow light cl
 
 Neutrino also solves the problem of SPV server cost, since SPV clients would simply be requesting blocks (and far fewer of them) from full nodes, there's not a whole lot of work that needs to be done - just a little additional bandwidth.
 
+Most SPV clients currently only connect to four SPV servers, which is small enough that a determined attacker could have a reasonably high chance of successfully eclipsing the client. With the decreased load on SPV servers, SPV clients could increase their number of connections (I recommmend 14) substantially without putting much additional strain on the network.
+
 Fraud proofs can help SPV nodes protect themselves from majority hard forks. If some of their connections are sending them blocks on a chain with less proof of work, they can ask those nodes to prove that the longer chain is invalid. Those nodes could prove it using fraud proofs, thus allowing the SPV nodes to successfully (and cheaply) avoid a majority hard fork.
 
-The above solves almost all the problems with SPV nodes, bringing their security up to almost full parity with full-nodes. However, the fundamental downside still remains - there are more attacks that can be done on an SPV node that has been eclipsed than a full node that has been eclipsed. A full node that has been eclipsed can have its outgoing or incoming transactions censored and can be double-spent on more easily than in a non-eclipse situation (tho perhaps only 2 or 3 times more easily at most). S light client (using Neutrino) that has been eclipsed, in addition to having those issues, can be tricked into accepting transactions that don't follow the rules (with about the same level of difficulty as double-spending on an eclipsed full-node). So it takes the same amount of effort to attack an upgraded SPV node as it does to attack a full node, but slightly more can be done to an SPV node once the necessary work has been done to achieve that attack.
+The above solves almost all the problems with SPV nodes, bringing their security up to almost full parity with full-nodes. However, the fundamental downside still remains - there are more attacks that can be done on an SPV node that has been eclipsed than a full node that has been eclipsed. While it takes the same amount of effort to attack an upgraded SPV node as it does to attack a full node, an attacker can do slightly more damage to an SPV client once the necessary work has been done to achieve that attack.
 
 If these limitations are acceptable to most people, then most people can safely use SPV nodes as long as a critical mass of users are still running full nodes.
 
@@ -347,6 +351,14 @@ Even light clients could choose to take part in replication of a shard or two. A
 With enough sharding, blockchain storage would cease to be a scalability concern. The question would be how to ensure that each shard has enough replication. Additionally, the finer the sharding, the greater the danger of DOS attacks that target a particular shard. Both of these problems would have to be solved for distributed data storage to become a reality.
 
 Distributed data storage could other applications in the Bitcoin world as well. For example, backup of lightning commitments comes to mind.
+
+## Emergency Mode
+
+In a situation where many lightning channels must close for whatever reason, it may be acceptable to process, for a short while, more transactions per second than it is normally safe to process. In such a case, full nodes and miners could go into an "emergency mode" where a higher than normal number of transactions per second can be mined (similarly to [Monero's dynamic block size](https://github.com/JollyMort/monero-research/blob/master/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee%20-%20DRAFT.md)) and full nodes could be alterted that there is temporarily high stress on the network. This would help clear transactions from the mempool so that it would be far less likely that any lightning channels would close with out-of-date committment contracts.
+
+Since an event like this is unlikely to happen frequently, it might be acceptable to use more resources to protect the system in a situation where that's needed. The downside is that for the period of higher stress, fewer full nodes could spin up or keep up with transacstions, and therefore more nodes would have to rely on SPV-level security. More nodes relying on SPV would also put a more stress on full nodes. Also, a dynamic block size has the potential to be influenced by unintended factors.
+
+This is most definitely one of the least-baked ideas in this write up, but it could potentially allow second-layer protocols to retain almost as much security as the base layer (on-chain Bitcoin).
 
 # Future throughput and capacity needs
 
@@ -382,9 +394,7 @@ Nodes would fall into two tiers:
 
 Assume UTXO would be used in combination with fraud proofs to eliminate the need for downloading or validating historical parts of the blockchain. Erlay would be used to reduce bandwidth consumption to be almost independent from the number of connections. Utreexo (or a more advanced accumulator) would be used to store, in-memory, the entire set of information needed to validate transactions as long as those transactions come with inclusion proofs.
 
-In a situation where a longer but invalid chain is created, light nodes would be alerted by their full-node connections with fraud proofs.
-
-In a situation where many lightning channels must close, full nodes and miners can go into emergency mode where a higher than normal number of transactions per second can be mined (similarly to Monero's dynamic block size) and full nodes can be alterted that there is high stress on the network temporarily. This can help clear transactions in the network so that its far less likely that any lightning channels will close with out-of-date committment contracts. Since an event like this is unlikely to happen frequently, it should be acceptable to use more resources to protect the system in a situation where that's needed.
+In a situation where a longer but invalid chain is created, light nodes would be alerted by their full-node connections with fraud proofs. An emergency mode could protect second layers of the network from system-wide DOS attacks (or unintentional effective DOS).
 
 Here's a summary of how all these advancements would changes our limits:
 
@@ -397,6 +407,8 @@ We are currently well into the danger zone of transaction throughput. Bitcoin ca
 Once we produce all these technologies, we can expect to be able to safely process upwards of 200 transactions per second on-chain. If these technologies take 10 years to come out, machines and connections should be powerful enough at that point to process more than 1000 TPS, nearing the level of Visa (~1700 tps). However, remember that on-chain transactions are costly for everyone and shouldn't be taken for granted. In conjunction with the lightning network, transctions per second are virtually infinite, while number of users becomes the limit. Once all these technologies are in place, achieving maximum lightning network security (via the ability to clear all lightning channels) should be achievable in much less than 10 years.
 
 We should remember that people like Luke Jr are right to worry about our Bitcoin's curent state. It is unsafe to raise the maximum block size at the moment until new scaling technologies are incorporated into Bitcoin. In fact, it was unsafe to have increased the maximum blocksize during segwit. We can build a safe currency in the near future, but for now we need to be patient and understand the limitations of the technology we have today.
+
+Most importantly, I strongly recommend that the Bitcoin community come together and decide on relevant minimum system-requirements to support. If we decide on that, we can use this kind of methodology to make a strong case for what the blocksize limit should be at any point in time. It would also help us prioritize solving the worst bottlenecks first.
 
 # Appendix A - Derivation of Initial Block Download equations
 
