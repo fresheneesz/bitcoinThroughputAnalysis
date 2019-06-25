@@ -2,14 +2,14 @@
 
 # Intro
 
-Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling). However, I've found little analysis that attempts to analyze all the major bottlenecks in order to gain a broader picture of where we stand and the hurdles ahead. LukeJr gave [results of his analysis](https://www.youtube.com/watch?v=CqNEQS80-h4) that lowering the blocksize maximum to 300KB would allow us to maintain the current sync time, and would allow sync time to decrease slowly over the years. But [his script](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/LukeJr's%20sync-time%20script.py) only calculates one bottleneck.
+Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling).
 
-In this document, I will analyze the major throughput bottlenecks that currently constrain Bitcoin's safe throughput capacity and look into what throughput capacity we can expect in the future.
+In this document, I will analyze the major throughput bottlenecks that currently constrain Bitcoin's safe throughput capacity and look into what throughput capacity we can expect in the future. These bottlenecks are all driven by stress put on the machines that make up the Bitcoin network in worst-case adversarial situations.
 
 - [Overview](#overview)
 - [The State of Available Machine Resources](#the-state-of-available-machine-resources)
 - [Assumptions](#assumptions)
-- [Light nodes](#light-nodes)
+- [SPV Nodes](#spv-nodes)
 - [Bottlenecks](#bottlenecks)
   * [Initial Block Download](#initial-block-download)
   * [Initial Sync Validation (without assumevalid)](#initial-sync-validation-without-assumevalid)
@@ -28,6 +28,7 @@ In this document, I will analyze the major throughput bottlenecks that currently
   * [Accumulators](#accumulators)
   * [Upgraded SPV Nodes](#upgraded-spv-nodes)
   * [Distributed data storage](#distributed-data-storage)
+  * [Emergency Mode](#emergency-mode)
 - [Future throughput and capacity needs](#future-throughput-and-capacity-needs)
   * [UTXO Expectations](#utxo-expectations)
   * [Lightning Network contingencies](#lightning-network-contingencies)
@@ -35,6 +36,11 @@ In this document, I will analyze the major throughput bottlenecks that currently
 - [Conclusions](#conclusions)
 - [Appendix](#appendix-a---derivation-of-initial-block-download-equations)
 
+# Prior Work
+
+LukeJr analyzed sync time and gave [results of his analysis](https://www.youtube.com/watch?v=CqNEQS80-h4) that lowering the blocksize maximum to 300KB would allow us to maintain the current sync time, and would allow sync time to decrease slowly over the years. But [his script](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/LukeJr's%20sync-time%20script.py) only calculates one bottleneck.
+
+BitFury produced [a paper](https://bitfury.com/content/downloads/block-size-1.1.1.pdf) in 2015 that has a lot of good information. The paper quantified the effect of blocksize on the basis of how many nodes would be excluded from the network. However, their estimate of how many nodes would be excluded is not well justified and doesn't attempt to estimate current or future nodes that are or will be excluded.
 
 # Overview
 
@@ -62,7 +68,7 @@ These considerations are all affected by transaction throughput and blocksize.
 
 Some of the effects of a larger blocksize:
 
-A. Users would need to store more data on their harddrive. This includes both nodes that store the historical blockchain as well as pruning nodes that need to store the UTXO set, since a larger blocksize is likely to mean more growth of the UTXO set.
+A. Users would need to store more data on their harddrive. This includes both nodes that store the historical blockchain as well as pruning nodes that need to store the UTXO set, since a larger blocksize is likely to mean more growth of the UTXO set (since at the moment, the average transaction creates more outputs than it consumes).
 
 B. Users would need to use more bandwidth to download and upload more data from and to their peers.
 
@@ -79,6 +85,16 @@ I will choose system requirements for 90% of the users and for the top 10% of us
 Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was [around 5 Kbps or lower in 2016](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/). While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
 
 The worlds internet speeds are increasing around 25%/year ([23% in 2015](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf), [26% in 2016](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf), [30% in 2017](https://www.speedtest.net/insights/blog/global-speed-2017/)).
+
+## Latency
+
+Latency is another factor that's relevant for time-sensitive data transmission, like propagating newly mined blocks.
+
+It takes light about 65ms to go halfway around the earth, and [in fiber optic cable](https://hpbn.co/primer-on-latency-and-bandwidth/) it takes about 100ms. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality this is 1.5 to 6 times as long. In addition, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL [1](https://potsandpansbyccg.com/tag/last-mile-latency/)[2](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/). It gets even worse for mobile phones, but we'll ignore that for our analysis.
+
+While we should see last-mile latency improve as more machines move to fiber (and from DSL to cable), it's unlikely we'll see much improvement in latency beyond that, since fiber is about as fast as it gets for directed light.
+
+All in all, we can expect perhaps around 90ms of latency per hop in the bitcoin network for nodes using fiber, 130ms for nodes using cable, and 250ms for nodes using something else (like DSL).
 
 ## Hard drive space
 
@@ -121,9 +137,9 @@ V. An attacker with 50% of the public addresses in the network can have no more 
 For the purposes of this analysis, I'm going to use the following estimates:
 
 * The 90th percentile of Bitcoin users have 1 Mbps bandwidth, 8 connections, 128GB of disk space, 2 GB of memory, enough cpu power to verify 200 transactions per second, and enough power that it isn't an issue (this assumption should probably be reconsidered).
-* The 10th percentile of Bitcoin users have 50 Mbps bandwidth, 80 connections, 1TB of disk space, 8 GB of memory, enough cpu power to verify 5,000 transactions per second, and enough power that it isn't an issue.
+* The 10th percentile of Bitcoin users have 50 Mbps bandwidth, 88 connections, 1TB of disk space, 8 GB of memory, enough cpu power to verify 5,000 transactions per second, and enough power that it isn't an issue.
 
-*See the "Ongoing Transaction Download & Upload" section for how 80 connections was calculated for the 10th percentile user.*
+*See the "Ongoing Transaction Download & Upload" section for how 88 connections was calculated for the 10th percentile user.*
 
 Most of the bottom 10% that don't fall within these goals can be assumed to use SPV. An SPV node can give its user almost as much security as a full node, even tho it doesn't help the rest of the network.
 
@@ -137,9 +153,11 @@ One obvious question is: why do we need or want most people to run full nodes? O
 * **SPV [doesn't scale well](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim) for SPV servers** that serve SPV light clients. A fix for this particular problem should appear relatively soon (Neutrino).
 * **Light clients don't support the network.** They don't validate blocks or transactions (other than SPV proofs they're passed) so they also don't pass around transactions or block data. However, they do consume resources. This is ok as long as we have a critical mass that do support the network (which is why I chose 10% as the fraction of nodes that do that). But if too big a fraction of the network consists of SPV nodes, then we won't reach that critical mass of full nodes that can adequately support the network.
 * **SPV nodes don't know that the chain they're on only contains valid transactions.** They can validate SPV proofs sent to them about transactions they query SPV servers for, and they validate the headers of the longest chain, but if the longest chain contains invalid transactions, an SPV node won't know that. In the case that a majority decide to change the rules of bitcoin in a dangerous way, SPV nodes will blindly follow the new rules as long as they can still validate their SPV proofs. So for a healthy level of decentralization and user-level agency in consensus rules, not too much of the network should consist of nodes that are suceptible to that kind of majority consensus rules change.
-* Light clients are fundamentally **more vulnerable in a successful [eclipse attack](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)** because they don't validate most of the transactions. A full node that has been eclipsed can have its outgoing or incoming transactions censored and can be double-spent on more easily than in a non-eclipse situation (tho perhaps only 2 or 3 times more easily at most). A light client (using Neutrino) that has been eclipsed, in addition to having those issues, can be tricked into accepting many kinds of invalid blocks (with about the same level of difficulty as double-spending on an eclipsed full-node).
+* Light clients are fundamentally **more vulnerable in a successful [eclipse attack](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)** because they don't validate most of the transactions. Full nodes and light clients can both have nefarious things done to them if they are eclipse attacked. A full node that has been eclipsed can have its outgoing or incoming transactions censored and can be tricked into following a chain with less work than the main chain (by cutting them off from that main chain), which can make it easier to double-spend on them more easily than in a non-eclipse situation (tho perhaps only 2 or 3 times more easily at most). A light client (using Neutrino) that has been eclipsed has those problems as well, but can also be tricked into accepting many kinds of invalid blocks (with about the same level of difficulty as double-spending on an eclipsed full-node).
 
-The last two are most important. If the vast majority of the network is unable to protect against an invalid longer-chain, then everyone in the network is suceptible to an unwanted and unintentional change of consensus rules, which could potentially leech the majority of wealth onto a less secure branch. SPV nodes don't currently have any way to be aware of most types of consensus rules changes.
+The last two are most important.
+
+If the vast majority of the network is unable to protect against an invalid longer-chain, then everyone in the network is suceptible to an unwanted and unintentional change of consensus rules, which could potentially leech the majority of wealth onto a less secure branch. SPV nodes don't currently have any way to be aware of most types of consensus rules changes. Imagine 90% of Bitcoin users were using SPV nodes that couldn't tell if the longest chain contains invalid transactions or not. If the majority of miners decide to change the rules and add invalid transactions to their blocks, all of those users would start using that invalid chain. These people would not be moving on purpose, but would accidentally follow this new chain because they have no way of knowing that the chain is invalid. It's possible that enough people would hear about the rules change and understand enough about it to eat any loss (for the day or two they were on the wrong chain) and switch back. But it seems equally likely that people would simply do nothing and stay on the new chain, either because they assume they have no control, they don't understand what's going on, they've been tricked into thinking its a good idea, or any number of other reasons. This is why its imperative that a strong majority of users run clients that can discover whether the longest chain is valid or not.
 
 Many of these problems can be solved, but the last one is fundamental and cannot be solved. Light nodes will always be more vulnerable in an eclipse attack. Its certainly possible that it can be effectively solved by reducing the likelyhood of an eclipse attack so there's no significant likelyhood of one being successful.
 
@@ -187,7 +205,7 @@ Currently by default, the core Bitcoin client makes 8 outgoing connections to pe
 
 `publicNodePercent*publicNodeConnections > outgoingConnections`
 
-If only 10 percent of users need to be able to open up public ports, that means each public node needs at least `8/.1 = 80 connections`.
+If only 10 percent of users are required to open up public ports, that means each public node needs at least `8/.1 = 80 public ports` which is `80 + 8 = 88 connections`.
 
 Each node will need to send inv messages for each transaction they haven't received from any given peer. On average, we could expect that a random transaction will have been received by half of that node's connections by the time they validate it. By the same token, each node will have to send inv messages for each transaction they haven't received from each seeder peer to that other peer. So in total, the node will have to either send or receive one inv message per transaction from each of its connections. In addition, the node will have to download the actual transactions from just one of its connections. Likewise, it's likely to need to upload each transaction to only one of its peers.
 
@@ -362,15 +380,21 @@ If each of the 8 billion people in the world has an average of 100 UTXOs, that's
 
 The lightning network can be expected to help Bitcoin scale by an enormous amount. Still, it has limits.
 
-Since lightning network security relies on on-chain transactions to enforce lightning comittments, its important that the network be able to handle the situation where a flood of channels are closed at once. This situation could basically resemble a bank run, with users trying to close their channel before their channel partner does something nefarious (like submit an out of date commitment). The worst case scenario is that every channel has one partner that tries to cheat.
+Since lightning network security relies on on-chain transactions to enforce lightning comittments, its important that the network be able to handle the situation where a flood of channels are closed at once. Why would we see mass channel closure? If the mempool becomes congested and there's a sudden rise in unconfirmed transactions that drives fees up, people could get understandably nervous about the security of their lightning channels and some may close them early fearing that the fees will continue to increase. Doing that would of course push fees higher and could cause a cascading channel closure effect with more and more users closing channels.
 
-A scenario where all channels have a cheater and need to close seems pretty unlikely. But a scenario where say 10% of channels are closed "just in case" doesn't seem so far fetched. If its widely known that the Bitcoin network doesn't have the capcity to clear all lightning channels quick enough to ensure that all channels that are watching can expect to get their broadcast commitment transactions into the blockchain, many people may panic and close their channel prematurely if the blockchain becomes congested, which in turn casues more congestion and more panic.
+A worst-case cousin of this would be if a significant number of channel partners tried to cheat by submitting an out-of-date transaction. If this happened to enough people, this would accellerate the cascading channel closures. Such a situation would basically resemble a bank run, with users trying to close their channel before their channel partner does something nefarious. The abosolute worst case scenario is that every channel has one partner that tries to cheat.
 
-Let's say that 8 billion people have an average of 3 channels each with 1 month time locks, and they all need to close. The network would have to support 4630 transactions/second for a whole month. If only 10% of channels want to close in that time, this would still be 460 transactions/second for a month in order to ensure all channels can be closed without any cheaters coming out ahead.
+A scenario where all channels have a cheater and need to close seems pretty unlikely. But a normal cascading channel closure situation doesn't seem quite as unlikely. If its widely known that the Bitcoin network doesn't have the capcity to clear all lightning channels quick enough to ensure that all channels can expect to get their breach remedy transactions into the blockchain, the fear of the cascading closure effect itself could be a self-fulfilling prophesy.
+
+Eltoo might make this situation worse, since it removes most of the disincentive for cheating. Imagine a channel with 100 bitcoins in it. If channel partner X started with 50 bitcoins on their side, and then transferred 40 of them away, user X could steal those 40 back by publishing their prior commitment at an opportune time, however they would only really stand to lose two transaction fees. If the chance of success was higher than 1 in 100,000 it would be worth it to try. It seems prudent to make the punishment for cheating proportional to the funds available to steal if possible.
+
+The only way I know of to ensure this doesn't happen is for the Bitcoin network to have the capacity to clear all transactions necessary to close every channel before their commitments' lock times are up.
+
+Let's say that 8 billion people have an average of 3 channels each with 1 month lock times, and they all need to close. The network would have to support 4630 transactions/second for a whole month. If 10% of channels want to close in that time, this would still be 460 transactions/second for a month in order to ensure all channels can be closed without any cheaters coming out ahead.
 
 # Future throughput
 
-Using the above techniques, we could theoretically eliminate disk storage and memory as bottlenecks, and substantially reduce the number of nodes that would need to use significant bandwidth and CPU power to download and verify transactions.
+Using the techniques in the [Potential Solutions](#potential-solutions) section, we could theoretically eliminate disk storage and memory as bottlenecks, and substantially reduce the number of nodes that would need to use significant bandwidth and CPU power to download and verify transactions.
 
 The minimum requirements of a blockchain network is that some percentage of the network must validate all transactions that come through. This means they would need to at minimum:
 * download all blocks, their transactions, and merkle proofs of UTXO inclusion
@@ -394,9 +418,13 @@ Here's a summary of how all these advancements would changes our limits:
 
 # Conclusions
 
-We are currently well into the danger zone of transaction throughput. Bitcoin cannot securely handle the amount of transactions it is currently processing. However, the good news is that ideas that have already been thought through can substantially scale Bitcoin to bring us back into a secure state. This will likely take many years to reach, but its a very heartening thing that we have so much headroom to improve Bitcoin from its already impressive position.
+We are currently well into the danger zone of transaction throughput. Using the very rough, hypothetical goals I used to do this analysis, Bitcoin cannot securely handle the amount of transactions it is currently processing. This is a problem not only for users who don't have access to machines that can run a full node, but for the Bitcoin network as a whole. If not enough people can run full nodes, it puts even those who can run full nodes at risk. If 95% of users are using SPV and a malicious chain happens, it means the 5% who are running full nodes suddenly can't pay or be paid by 95% of the world. That's a problem for everyone, not just the SPV nodes that have been tricked.
 
-Once we produce all these technologies, we can expect to be able to safely process upwards of 200 transactions per second on-chain. If these technologies take 10 years to come out, machines and connections should be powerful enough at that point to process more than 1000 TPS, nearing the level of Visa (~1700 tps). However, remember that on-chain transactions are costly for everyone and shouldn't be taken for granted. In conjunction with the lightning network, transctions per second are virtually infinite, while number of users becomes the limit. Once all these technologies are in place, achieving maximum lightning network security (via the ability to clear all lightning channels) should be achievable in much less than 10 years.
+I should stress that the goals used for this analysis are not well-researched enough to be taken for granted, and those goals should be reevaluated. I made it easy to change the goals in the [bottlenecks.xlsx](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/bottlenecks.xlsx?raw=true) spreadsheet, so its easy to see the analysis for various any goals one might want to choose.
+
+Anyways, the good news is that ideas that have already been thought through can substantially scale Bitcoin to bring us back into a secure state. This will likely take many years to reach, but its very heartening that we have so much headroom to improve Bitcoin from its already impressive position.
+
+Once we produce all these technologies, we should be able to safely process upwards of 200 transactions per second on-chain, even in worst-case adversarial scenarios. If these technologies take 10 years to come out, machines and connections should be powerful enough at that point to process more than 1000 TPS, nearing the level of Visa (~1700 tps). However, remember that on-chain transactions are costly for everyone and shouldn't be taken for granted. In conjunction with the lightning network, transctions per second are virtually infinite, while number of users becomes the limit. Once all these technologies are in place, achieving maximum lightning network security (via the ability to clear all lightning channels) should be achievable in much less than 10 years.
 
 We should remember that people like Luke Jr are right to worry about our Bitcoin's curent state. It is unsafe to raise the maximum block size at the moment until new scaling technologies are incorporated into Bitcoin. In fact, it was unsafe to have increased the maximum blocksize during segwit. We can build a safe currency in the near future, but for now we need to be patient and understand the limitations of the technology we have today.
 
@@ -550,7 +578,7 @@ The maximum throughput that makes the after-assumevalid download stay within lim
 The maximum size of the historical blockchain that our 90th percentile users can download at time t can be found using the parameter:
 
 * `curDlSpeed = (1000 Kbps)*.1 = 100 Kpbs = 12.5 KB/s`
-* `syncTime = 2 months = 60*24*60*60 seconds `
+* `syncTime = 2 months = 60*24*60*60 seconds`
 
 `maxDownload = 12.5 KB/s * 1.25^t * 2 months = 12.5*1.25^t*(60*24*60*60)/10^6 GB`
 
@@ -558,8 +586,120 @@ The maximum throughput our 90th percentile users can manage for the historical d
 
 `size' = 12.5 KB/s * ln(1.25) * 1.25^t * 2 months = 12.5*ln(1.25)*1.25^t*(60*24*60*60)/1000^2 GB/year`
 
+Appendix E - Mining centralization pressure
+
+As of this writing, miners use the Bitcoin FIBRE network (aka Matt Corallo's relay network), which closely connects them together to reduce latency. However, the Fibre relay [cannot determine if data is valid](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy) because of the way the Forward Error Correction works. This opens up an opportunity for attackers to spam the relay network. The Faclon network, developed by Cornell researchers, is another proposal to speed up relay, but it presumably also has the same problem since data is relayed without being validated by most nodes. Also, both FIBRE and Falcon [are centralized systems](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784) and so rely on trusting the controlling entities (like Matt Corallo or Cornell).
+
+If the fast relay networks are disrupted, miners may have to fall back to using basic block relay to obtain the most recently mined block. Each full node that relays a block would have to receive and validate the block before passing it on, which significantly adds to the latency between block broadcast and receipt of the blocks by the rest of the miners. More latency means more centralization pressure because this latency represents the "head start" that the miner who mined the latest block gets in mining the next block.
 
 
+
+
+
+
+The average time it would take for a block to get through the network is:
+
+
+`nodes = connections^(levels-1)`
+
+A tree can be used as a way to find the lower bound for the average number of hops needed to relay the block to all nodes. Bitcoin's network closely resembles a perfect graph where every node is randomly connected to other nodes. A graph would definitely need more hops on average to reach all nodes than the distance from an equivalent [complete tree](https://en.wikipedia.org/wiki/M-ary_tree#Types_of_m-ary_trees). Therefore, the distance from the root of a complete tree to the farthest leaves can be used as a lower bound for the average number of hops needed to get from a random node to all nodes in a randomly connected network where each node has the same number of connections.
+
+The relationship between nodes, levels, and connections in a complete tree is:
+
+`nodes = connections^(levels-1)`
+
+The hops from the root to the farthest leaf is `levels - 1`, so a lower bound on the average hops of our network is:
+
+`lowerBoundAvgHops = levels - 1 = log(nodes)/log(connections)`
+
+A tree has no cycles, and so every message hop reaches a new node that hasn't received the message yet. However, a graph like the Bitcoin network does have cycles and so not every hop reaches a new node. If a node broadcasts a message to the rest of the network in a randomly connected mesh network, in the early hops, there's a very high probability the message will reach a part of the network that hasn't seen the message yet. However as that message reaches more of the network, that probability rapidly drops such that the liklihood that each connection will reach a node that hasn't yet received the message is the same ratio as the proportion of nodes in the network that haven't yet received the message. So this would mean that, on average, only 50% of the connections end up being useful for propagating the message farther.
+
+So to make a likely more accurate estimate, we can simply divide the number of connections by 2:
+
+`estimatedAvgHops = log(nodes)/log(connections/2)`
+
+Blocks would propagate through the fastest nodes in the network first. So for example, in a network where each full node has 10 full-node connections, we can expect data to propagate along the 10% fastest nodes in the network. This means propagation is limited by the machine resources of our 10th percentile users and not users with less resources.
+
+Since 80% of the nodes should have 8 connections and 10% of the nodes should have 88 connections (the other 10% having no relevant connections), that means that 88.9% (`80/(80+10)`) of nodes will on average transfer to a 12.5 percentile machine (`1/8`), and 11.1% of the nodes will on average transfer to a 1.1 percentile machine. To simplify, I'll say that 90% of nodes will transfer to our 10th percentile user and 10% of nodes will transfer to a 1st percentile machine.
+
+For each newly mined block, each node that's part of the relay must at minimum do the following:
+
+1. Download the block header and the transactions it hasn't already received
+2. Validate the transactions it hasn't already validated
+3. Rebroadcast the block
+
+This means we can estimate the average time to reach all (or most) nodes as:
+
+`timeToReachEdge = hops*(latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent)`
+
+where
+
+* `dataTransferred = 2*(compactBlockSize + extraTransactionsSize)`
+* `compactBlockSize = compactness*blocksize`
+* `extraTransactionsSize = missingTransactionPercent*blocksize`
+
+The centralization pressure can be measured by the advantage larger mining operations get over smaller ones. The apparent extra hashpower (as a percentage) can be given by:
+
+`apparentExtraHashpowerPercent = percentHashpower*(headStart/blocktime)`
+
+For this analysis, I'll use the difference between a miner with 50% of the hashpower and a miner with negligible hashpower.
+
+Compact block size is about [9 KB per MB](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/) of total block size.
+
+Finding the maximum `headStart`/`timeToReachEdge`
+
+`maxHeadStart = maxTimeToReachEdge = blocktime*apparentExtraHashpower/percentHashpower`
+
+Finding the maximum dataTransferred:
+
+`timeToReachEdge/hops = latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent`
+
+`maxDataTransferred = avgBandwidth*(timeToReachEdge/hops - latencyPerHop - validationTime*transactionsPerBlock*missingTransactionPercent)`
+
+where
+
+* `transactionsPerBlock = blocksize/transactionSize`
+
+Putting this together:
+
+* `dt = dataTransferred`
+* `c = compactness`
+* `bs = blocksize`
+* `bt = blocktime`
+* `mt = missingTransactionPercent`
+* `tte = timeToReachEdge = headStart`
+* `h = hops`
+* `L = latencyPerHop`
+* `B = avgBandwidth`
+* `vt = validationTime`
+* `ts = transactionSize`
+* `mtp = missingTransactionPercent`
+* `aeh = apparentExtraHashpowerPercent`
+* `ph = percentHashpower`
+
+`dt = 2*bs*(c + mt)`
+
+`tte = h*(L+dt/B+vt*mtp*bs/ts)`
+
+`aeh = ph*tte/bt`
+
+Solving for `blocksize`:
+
+`tte/h - L = (2*bs*(c + mt))/B + vt*mtp*bs/ts`
+
+`tte/h - L = bs*((2*(c + mt))/B + vt*mtp/ts)`
+
+`bs = (tte/h - L)/((2*(c + mt))/B + vt*mtp/ts)`
+
+Adding in `tte` from the `aeh` equation:
+
+`tte = aeh*bt/ph`
+
+`bs = ((aeh*bt/ph)/h - L)/((2*(c + mt))/B + vt*mtp/ts)`
+
+`maxBlocksize = ((apparentExtraHashpowerPercent*blocktime/percentHashpower)/hops - latencyPerHop)/((2*(compactness + missingTransactionPercent))/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
+
+We'll use the goal that the maximum advantage an entity with 50% of the hashpower could have is 0.1%.
 
 
 
