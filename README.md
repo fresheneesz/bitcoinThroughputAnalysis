@@ -2,7 +2,7 @@
 
 # Intro
 
-Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling).
+Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling). It hasn't helped that there are [many misunderstandings](https://medium.com/@thecryptoconomy/7-misunderstandings-of-bitcoins-scaling-problem-c5142e938a68) of where Bitcoin's bottlenecks are.
 
 In this document, I will analyze the major throughput bottlenecks that currently constrain Bitcoin's safe throughput capacity and look into what throughput capacity we can expect in the future. These bottlenecks are all driven by stress put on the machines that make up the Bitcoin network in worst-case adversarial situations.
 
@@ -618,19 +618,25 @@ So to make a likely more accurate estimate, we can simply divide the number of c
 
 `estimatedAvgHops = log(nodes)/log(connections/2)`
 
-Blocks would propagate through the fastest nodes in the network first. So for example, in a network where each full node has 10 full-node connections, we can expect data to propagate along the 10% fastest nodes in the network. This means propagation is limited by the machine resources of our 10th percentile users and not users with less resources.
+Blocks would propagate through the fastest nodes in the network first. So for example, in a network where each full node has 10 full-node connections, we can expect data to propagate along the 10% fastest nodes in the network. However, since latency is an enormous factor 
+
+
+
+This means propagation is limited by the machine resources of our 10th percentile users and not users with less resources.
 
 Since 80% of the nodes should have 8 connections and 10% of the nodes should have 88 connections (the other 10% having no relevant connections), that means that 88.9% (`80/(80+10)`) of nodes will on average transfer to a 12.5 percentile machine (`1/8`), and 11.1% of the nodes will on average transfer to a 1.1 percentile machine. To simplify, I'll say that 90% of nodes will transfer to our 10th percentile user and 10% of nodes will transfer to a 1st percentile machine.
 
 For each newly mined block, each node that's part of the relay must at minimum do the following:
 
-1. Download the block header and the transactions it hasn't already received
-2. Validate the transactions it hasn't already validated
+1. Download the block header (1x latency, negligible data)
+2. Upload a request for the transactions it hasn't already received (1x latency, negligible data)
+3. Download those missing transactions (1x latency, significant data on the order of the number of transactions)
+2. Validate the missing transactions
 3. Rebroadcast the block
 
 This means we can estimate the average time to reach all (or most) nodes as:
 
-`timeToReachEdge = hops*(latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent)`
+`timeToReachEdge = hops*(3*latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent)`
 
 where
 
@@ -652,9 +658,9 @@ Finding the maximum `headStart`/`timeToReachEdge`
 
 Finding the maximum dataTransferred:
 
-`timeToReachEdge/hops = latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent`
+`timeToReachEdge/hops = 3*latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent`
 
-`maxDataTransferred = avgBandwidth*(timeToReachEdge/hops - latencyPerHop - validationTime*transactionsPerBlock*missingTransactionPercent)`
+`maxDataTransferred = avgBandwidth*(timeToReachEdge/hops - 3*latencyPerHop - validationTime*transactionsPerBlock*missingTransactionPercent)`
 
 where
 
@@ -697,14 +703,40 @@ Adding in `tte` from the `aeh` equation:
 
 `bs = ((aeh*bt/ph)/h - L)/((2*(c + mt))/B + vt*mtp/ts)`
 
-`maxBlocksize = ((apparentExtraHashpowerPercent*blocktime/percentHashpower)/hops - latencyPerHop)/((2*(compactness + missingTransactionPercent))/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
+`maxBlocksize = ((apparentExtraHashpowerPercent*blocktime/percentHashpower)/hops - 3*latencyPerHop)/((2*(compactness + missingTransactionPercent))/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
 
 We'll use the goal that the maximum advantage an entity with 50% of the hashpower could have is 0.1%.
 
 
 
+The Erlay paper has a latency chart showing experimentally determined average transction propagation time to X% of the Bitcoin network:
+
+![Erlay Latency Graph.png](Erlay Latency Graph.png)
+
+The propagation of "BTCFlood" for transactions should be very similar to block propagation. According to the graph, the average time to reach any particular node in the network can be calculated by measuring the area under the curve (estimating with right triangles):
+
+`1 + 0.25*.8/2 + 0.25*0.2 + (3.125-1.25)*0.2/2 = 1.34 seconds`
 
 
+
+
+The surface area within a great-circle distance of a point can be found using the [sphereical cap formula](http://mathworld.wolfram.com/SphericalCap.html), the [central angle](https://en.wikipedia.org/wiki/Central_angle), and the [law of cosines](https://en.wikipedia.org/wiki/Law_of_cosines).
+
+`area = 2*pi*radius*capHeight`
+
+`centralAngle = radius/surfaceDistance`
+
+`cos(centralAngle) = (radius-capHeight)/radius`
+
+From this we can find the `area` in terms of `surfaceDistance`:
+
+`radius-capHeight = radius*cos(radius/surfaceDistance)`
+
+`capHeight = radius*(1-cos(radius/surfaceDistance))`
+
+`area = 2*pi*radius*(radius*(1-cos(radius/surfaceDistance)))`
+
+`area = 2*pi*radius^2*(1-cos(radius/surfaceDistance))`
 
 
 
