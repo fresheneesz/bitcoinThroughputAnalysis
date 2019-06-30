@@ -277,7 +277,7 @@ This matches up very closely to the latency I estimated on the spreadsheet (1.39
 
 To gain some additional intuition about how latency, CPU power, and bandwidth affect miner centralization, I created a couple tables showing how much each component adds to the average block-propagation time for various values.
 
-![centralizationPressureIntuition.png](centralizationPressureIntuition.png)
+![latencyIntuition.png](latencyIntuition.png)
 
 As you can see, the latency is likely the largest component. It is also the most difficult component to improve, since latency of physical links is limited by the speed of light. Transaction validation can be a significant source of delay, but probably not quite as significant as latency at current blocksizes. Bandwidth affects delay the least. However, as blocksize increases, transfer time and validation time increase while latency doesn't. So these factors do still affect centralization pressure in a significant way.
 
