@@ -51,6 +51,7 @@ In order to analyze Bitcoin's maximum throughput, its necessary to choose some s
 3. We want most people to be able to be able to fully verify their transactions so they have full self-sovereignty of their money.
 4. We want to be resilient in the face of chain splits. For example, if a majority wants to change bitcoin in a way that a minority thinks is dangerous or compromises the system, its important that minority can maintain the operation of their chain in the face of a majority split.
 5. We want to be resilient in the face of attempted eclipse attacks.
+6. We want mining to be as fair as possible - ie we want mining reward to scale as close to linearly with hashpower as possible.
 
 We don't need the people with the worst equipment to mine (#1), and we might not even need them to support the network (#2) very much, but we do want them to be able to be able to fully verify their own transactions (#3), and we want them to be able to know what chain they're on (#4).
 
@@ -64,7 +65,9 @@ These considerations are all affected by transaction throughput and blocksize.
 
 \#4 In the case of a hard fork, SPV nodes won't know what's going on. They'll blindly follow whatever chain their SPV server is following. If enough SPV nodes take payments in the new currency rather than the old currency, they're more likely to acquiesce to the new chain even if they'd rather keep the old rules.
 
-\#5  is relevant because the primary tradeoff for this is that increasing the number of outgoing connections each node makes reduces their suceptibility, but this also increases network load for each node, especially if many nodes are leeching data but not seeding.
+\#5 is relevant because the primary tradeoff for this is that increasing the number of outgoing connections each node makes reduces their suceptibility, but this also increases network load for each node, especially if many nodes are leeching data but not seeding.
+
+\#6 is important because if significantly higher ROI can be gained by joining a large pool or investing in a larger miner, then mining operations will inevitably merge and centralize over time, giving enormous power to the controllers of large mining operations.
 
 Some of the effects of a larger blocksize:
 
@@ -92,9 +95,9 @@ Latency is another factor that's relevant for time-sensitive data transmission, 
 
 It takes light about 65ms to go halfway around the earth, and [in fiber optic cable](https://hpbn.co/primer-on-latency-and-bandwidth/) it takes about 100ms. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality this is 1.5 to 6 times as long. In addition, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL [1](https://potsandpansbyccg.com/tag/last-mile-latency/)[2](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/). It gets even worse for mobile phones, but we'll ignore that for our analysis.
 
-While we should see last-mile latency improve as more machines move to fiber (and from DSL to cable), it's unlikely we'll see much improvement in latency beyond that, since fiber is about as fast as it gets for directed light.
-
 All in all, we can expect perhaps around 90ms of latency per hop in the bitcoin network for nodes using fiber, 130ms for nodes using cable, and 250ms for nodes using something else (like DSL).
+
+While we should see last-mile latency improve as more machines move to fiber (and from DSL to cable), it's unlikely we'll see much improvement in latency beyond that, since fiber is about as fast as it gets for light directed through a wire. If we treat 15ms as a near-minimum last-mile latency and assume that most of the reduction in latency in the US between 2010 and 2012 happened at the last mile, then that was actually about a 20% reduction in last-mile headroom latency. This translates to an 11%/year improvement. Outside of the US, there was no improvement in latency at all in those years. So for the purposes of this analysis, I'll use a 4%/year rate of improvement (asymptotically decreasing towards the speed-of-light minimum).
 
 ## Hard drive space
 
@@ -133,6 +136,8 @@ III. 90% of Bitcoin users should be able to validate and forward data through th
 IV. The top 10% of Bitcoin users should be able to store and seed the network with the entire blockchain using at most 10% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
 
 V. An attacker with 50% of the public addresses in the network can have no more than 1 chance in 10,000 of eclipsing a victim that chooses random outgoing addresses.
+
+VI. The maximum advantage an entity with 25% of the hashpower could have (over a miner with near-zero hashpower) is the ability to mine 0.1% more blocks than their ratio of hashpower, even under a 50% sybiled network.
 
 For the purposes of this analysis, I'm going to use the following estimates:
 
@@ -245,7 +250,43 @@ According to [out of date information](http://gavinandresen.ninja/utxo-uhoh), th
 
 With these assumptions, the maximum UTXO size is already higher than limits for our 90th percentile user by a factor of 3, and we can only expect this to get worse over time.
 
-# Summary of the Current State of Bitcoin
+## Mining Centralization Pressure
+
+As of this writing, miners use the Bitcoin FIBRE network (aka Matt Corallo's relay network), which closely connects them together to reduce latency. However, the Fibre relay [cannot determine if data is valid](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy) because of the way the Forward Error Correction works. This opens up an opportunity for attackers to spam the relay network. The Faclon network, developed by Cornell researchers, is another proposal to speed up relay, but it presumably also has the same problem since data is relayed without being validated by most nodes. Also, both FIBRE and Falcon [are centralized systems](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784) and so rely on trusting the controlling entities (like Matt Corallo or Cornell).
+
+If the fast relay networks are disrupted, miners may have to fall back to using basic block relay to obtain the most recently mined block. Each full node that relays a block would have to receive and validate the block before passing it on, which significantly adds to the latency between block broadcast and receipt of the blocks by the rest of the miners.
+
+More latency means more centralization pressure because this latency represents the "head start" that the miner who mined the latest block gets in mining the next block. Miners that mine blocks more often (larger miners) would get this "head start" more often, which translates into an advantage out of proportion with their share of hashpower.
+
+The maximum block size that can support a given centralization pressure goal (`apparentExtraHashpowerPercent`) for a given amount of hashpower (`percentHashpower`), can be expressed as (see Appendix E):
+
+`maxBlocksize = ((apparentExtraHashpowerPercent*blocktime/percentHashpower)/hops - 3*latencyPerHop)/((2*(compactness + missingTransactionPercent))/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
+
+The Erlay paper has a latency chart showing experimentally determined average transction propagation time to X% of the Bitcoin network:
+
+![Erlay Latency Graph.png](Erlay Latency Graph.png)
+
+The propagation of "BTCFlood" for transactions should be very similar to the latency of block propagation, since the time to download, verify, and upload are insignificant next to the latency. According to the graph, the average latency to any particular node in the network can be calculated by measuring the area under the curve (estimating with right triangles):
+
+`1 + 0.25*.8/2 + 0.25*0.2 + (3.125-1.25)*0.2/2 = 1.34 seconds`
+
+This matches up very closely to the latency I estimated on the spreadsheet (1.39s). This latency alone gives a miner with 25% of the hashpower a 0.05% mining advantage, which is half the stated goal even without including verification time or data transfer time.
+
+To gain some additional intuition about how latency, CPU power, and bandwidth affect miner centralization, I created a couple tables showing how much each component adds to the average block-propagation time for various values.
+
+![centralizationPressureIntuition.png](centralizationPressureIntuition.png)
+
+As you can see, the latency is likely the largest component. It is also the most difficult component to improve, since latency of physical links is limited by the speed of light. Transaction validation can be a significant source of delay, but probably not quite as significant as latency at current blocksizes. Bandwidth affects delay the least. However, as blocksize increases, transfer time and validation time increase while latency doesn't. So these factors do still affect centralization pressure in a significant way.
+
+I estimated the maximum block size both in a situation without a sybil attack and with a sybil attack. If a sybil attack is in effect, sybil attackers could theoretically keep a low enough profile to not get banned but still slow down block propagation. They would do this by contributing at-average or slightly below-average amounts to the network, and by taking up valuable connections. If a sybil attacker had 50% of the public nodes, this effectively reduces the usable connections by half.
+
+For the given goal of 0.1% centralization pressure for a miner with 25% of the hashpower, the upper-bound on average propagation time is 2.4 seconds. With my estimations for these values, we are just barely meeting the goal in a non-sybil environment. In an environment with 50% sybil nodes, we could still maintain the goal at a maximum blocksize of 1.3 MB, so we currently aren't meeting this goal for a sybil environment.
+
+Keep in mind, the estimates given about centralization pressure are by far the estimates I'm least sure about in this write up, and centralization pressure is highly dependent on a ton of factors including connectivity of the network, geographic distribution of machines with various properties (processor power, bandwidth, latency, etc), network infrastructure, miner connectivity, and more. The FIBRE network is currently critical for keeping centralization pressure to a minimum, and we should attempt to maintain networks like that if at all possible.
+
+However, latency cannot be eliminated entirely and a small amount of centralization pressure will always exist for a proof of work system. Since latency improves very slowly and block propagation is primarly gated on latency, infrastructure improvements will not quickly solve this problem for us.
+
+# Summary of the Current Bottlenecks
 
 Here's a summary of the above analyis of the various bottlenecks Bitcoin currently has. This list is in order of tightest to widest bottleneck in Bitcoin throughput.
 
@@ -301,7 +342,11 @@ The relationship between number of `outgoingConnections`, the `ratio` of attacke
 
 `outgoingConnections = log(changeOfEclipse)/log(ratio)`
 
-Let's say our goal was to require an attacker to have only 1 chance in 10,000 to eclipse a target if they controlled half the addresses in the system. This means that to achieve our goal stated above (where `changeOfEclipse = 1/10,000` and `ratio = 0.5`, every node would need at least 14 outgoing connections to the network. 20 outgoing connections would give 1 chance in 1 million for such an attacker. Erlay could make this scenario a reality.
+Let's say our goal was to require an attacker to have only 1 chance in 10,000 to eclipse a target if they controlled half the addresses in the system. This means that to achieve our goal stated above (where `changeOfEclipse = 1/10,000` and `ratio = 0.5`, every node would need at least 14 outgoing connections to the network. 20 outgoing connections would give 1 chance in 1 million for such an attacker. If we wanted to instead be resilient to an attacker with 90% of the public nodes, each node would need almost 90 connections. Erlay could make these scenarios possible.
+
+## Proactive Transaction Inclusion in Blocks
+
+In my analysis of mining centralization pressure above, latency is multiplied by 3 because of back-and-forth messages that happen on broadcast of a block. However, if a node keeps track of which transactions its connections are known to already have, any transactions in a block that a connection is not known to have can be sent proactively with the block info so that no additional information is needed. This may transmit some extra transaction data, but it reduces latency by a factor of 3 because 2 out of 3 messages can be eliminated (the transaction request and response).
 
 ## Fraud Proofs
 
@@ -330,7 +375,7 @@ If this was done, the worst-case sync time would scale linearly with the transac
 
 Additionally, a lot of bandwidth could be saved by using a little bit of memory. Many levels of Utreexo's Merkle forest could be stored in memory to reduce the amount of Merkle proof data necessary to include alongside transactions (in turn reducing bandwidth requirements). Using just 100 MB of memory for this purpose would cut the necessary extra bandwidth almost in half.
 
-Other solutions like RSA or Eliptic Curve based accumulators could eliminate growth of bandwidth in relation to UTXO set size entirely. RSA accumulators have inclusion proofs of constant size no matter how big the UTXO set is. They can also do proof of non-inclusion (aka proof of completeness) which could allow SPV nodes to eliminate the possibilty of being lied to by omission. Eliptic curve accumulators could have the similar properties but with a much smaller footprint. These are active areas of research.
+Other solutions like RSA or Eliptic Curve based accumulators could eliminate growth of bandwidth in relation to UTXO set size entirely. RSA accumulators have inclusion proofs of constant size no matter how big the UTXO set is. They can also do proof of non-inclusion (aka proof of completeness) which could allow SPV nodes to eliminate the possibilty of being lied to by omission. Eliptic curve accumulators could have the similar properties but with a much smaller footprint. And symmetric accumulators remove the need for witness entirely. These are active areas of research.
 
 ## Upgraded SPV Nodes
 
@@ -411,6 +456,8 @@ Nodes would fall into two tiers:
 Assume UTXO would be used in combination with fraud proofs to eliminate the need for downloading or validating historical parts of the blockchain. Erlay would be used to reduce bandwidth consumption to be almost independent from the number of connections. Utreexo (or a more advanced accumulator) would be used to store, in-memory, the entire set of information needed to validate transactions as long as those transactions come with inclusion proofs.
 
 In a situation where a longer but invalid chain is created, light nodes would be alerted by their full-node connections with fraud proofs. An emergency mode could protect second layers of the network from system-wide DOS attacks (or unintentional effective DOS).
+
+Even tho scaling up 1000x from the current estimated 7 million bitcoin users to a world of 8 billion people adds a ton of people to the network, it doesn't actually add much to the number of average hops necessary to propagate blocks to the network. And with additional connections that Erlay makes possible, only about 1 additional hop would be needed an average. If nodes are keeping track of which transactions their connections have via Erlay reconcilliation once per second, then 2 out of 3 hops can be eliminated by transfering the block and all transctions for that block that the connection isn't known to already have all at once. This would eliminate an enormous amount of latency-related delay. However doing all of this would only really double the maximum block size that could be safely supported according to our goals. So we can expect miner centralization pressure to be a major limiting factor in transction throughput.
 
 Here's a summary of how all these advancements would changes our limits:
 
@@ -586,21 +633,7 @@ The maximum throughput our 90th percentile users can manage for the historical d
 
 `size' = 12.5 KB/s * ln(1.25) * 1.25^t * 2 months = 12.5*ln(1.25)*1.25^t*(60*24*60*60)/1000^2 GB/year`
 
-Appendix E - Mining centralization pressure
-
-As of this writing, miners use the Bitcoin FIBRE network (aka Matt Corallo's relay network), which closely connects them together to reduce latency. However, the Fibre relay [cannot determine if data is valid](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy) because of the way the Forward Error Correction works. This opens up an opportunity for attackers to spam the relay network. The Faclon network, developed by Cornell researchers, is another proposal to speed up relay, but it presumably also has the same problem since data is relayed without being validated by most nodes. Also, both FIBRE and Falcon [are centralized systems](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784) and so rely on trusting the controlling entities (like Matt Corallo or Cornell).
-
-If the fast relay networks are disrupted, miners may have to fall back to using basic block relay to obtain the most recently mined block. Each full node that relays a block would have to receive and validate the block before passing it on, which significantly adds to the latency between block broadcast and receipt of the blocks by the rest of the miners. More latency means more centralization pressure because this latency represents the "head start" that the miner who mined the latest block gets in mining the next block.
-
-
-
-
-
-
-The average time it would take for a block to get through the network is:
-
-
-`nodes = connections^(levels-1)`
+# Appendix E - Mining centralization pressure
 
 A tree can be used as a way to find the lower bound for the average number of hops needed to relay the block to all nodes. Bitcoin's network closely resembles a perfect graph where every node is randomly connected to other nodes. A graph would definitely need more hops on average to reach all nodes than the distance from an equivalent [complete tree](https://en.wikipedia.org/wiki/M-ary_tree#Types_of_m-ary_trees). Therefore, the distance from the root of a complete tree to the farthest leaves can be used as a lower bound for the average number of hops needed to get from a random node to all nodes in a randomly connected network where each node has the same number of connections.
 
@@ -618,13 +651,17 @@ So to make a likely more accurate estimate, we can simply divide the number of c
 
 `estimatedAvgHops = log(nodes)/log(connections/2)`
 
-Blocks would propagate through the fastest nodes in the network first. So for example, in a network where each full node has 10 full-node connections, we can expect data to propagate along the 10% fastest nodes in the network. However, since latency is an enormous factor 
+Blocks would propagate through the fastest nodes in the network first. So for example, in a network where each full node has 10 full-node connections, we can expect data to propagate along the 10% fastest nodes in the network. However, since latency is an enormous factor in propagation of data through the Bitcoin network, the 10% fastest nodes won't quite be the 10th percentile users, but will skew towards users that are geographically closer to each sending node. What this means is that instead of seeing average latency of 125ms along each fastest-hop, we would more likely see 95ms average latency, but instead of seeing average transfer speeds of 155 Mbps we would more likely see 82 Mbps. This doesn't necessarily mean that data would propagate out mostly by geographic distance (as can be seen by looking at [videos of how blocks propagate](https://dsn.tm.kit.edu/bitcoin/videos.html)), but that lower latency connections would be favored somewhat.
 
+As a first approximation, one might assume that since 80% of the nodes should have 8 connections and 10% of the nodes should have 88 connections (the other 10% having no relevant connections), that means that 88.9% (`80/(80+10)`) of nodes will on average transfer to a 12.5 percentile machine (`1/8`), and 11.1% of the nodes will on average transfer to a 1.1 percentile machine. But given the above line of thinking that skews things toward slower, but closer (lower latency), machines, as a second approximation I'll say that 47% of nodes will transfer fastest to a 90th percentile machine, 47% of nodes will transfer fastest to a 10th percentile machine, and 6% of nodes will transfer to a 1st percentile machine.
 
+This leads to an extimated average number of hops to any given node of about 8.5. See the "Latency-based Miner Centralization" section of the spreadsheet for details. It also leads to an assumed 83 Mbps bandwidth (only 10% expected to be used) and an average latency of 95ms.
 
-This means propagation is limited by the machine resources of our 10th percentile users and not users with less resources.
+HOWEVER, since most 90% nodes won't have public connections, most connections for most nodes will be to 10th percentile machines or above. This changes the equation.
 
-Since 80% of the nodes should have 8 connections and 10% of the nodes should have 88 connections (the other 10% having no relevant connections), that means that 88.9% (`80/(80+10)`) of nodes will on average transfer to a 12.5 percentile machine (`1/8`), and 11.1% of the nodes will on average transfer to a 1.1 percentile machine. To simplify, I'll say that 90% of nodes will transfer to our 10th percentile user and 10% of nodes will transfer to a 1st percentile machine.
+Also however, we need to assume a worst-case-ish scenario. If many slow nodes are sybiling the system, that can slow down block propagation. If 90% of the nodes are attacker nodes, this would slow things down quite a bit. In order to combat this, I recommend that particularly slow outgoing connections should add to their banscore so that those slow outgoing connections are dropped in favor of a faster connection.
+
+Note that compact block size is about [9 KB per MB](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/) of total block size, giving a compact block size of about 0.9% of the total block size. Also, the Erlay paper notes that around 99% of transactions in a block have already been processed by a node by the time it was received and so don't need to be sent again. So I'll use that my estimates.
 
 For each newly mined block, each node that's part of the relay must at minimum do the following:
 
@@ -636,113 +673,37 @@ For each newly mined block, each node that's part of the relay must at minimum d
 
 This means we can estimate the average time to reach all (or most) nodes as:
 
-`timeToReachEdge = hops*(3*latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent)`
+`timeToReachEdge = hops*(latencyDelay + transferDelay + validationDelay)`
 
 where
 
-* `dataTransferred = 2*(compactBlockSize + extraTransactionsSize)`
-* `compactBlockSize = compactness*blocksize`
-* `extraTransactionsSize = missingTransactionPercent*blocksize`
+* `latencyDelay = 3*latencyPerHop`
+* `transferDelay = dataTransferred/avgBandwidth`
+  * `dataTransferred = 2*(compactBlockSize + extraTransactionsSize)`
+  * `compactBlockSize = compactness*blocksize`
+  * `extraTransactionsSize = missingTransactionPercent*blocksize`
+* `validationDelay = validationTime*transactionsPerBlock*missingTransactionPercent`
+  * `transactionsPerBlock = blocksize/transactionSize`
 
 The centralization pressure can be measured by the advantage larger mining operations get over smaller ones. The apparent extra hashpower (as a percentage) can be given by:
 
 `apparentExtraHashpowerPercent = percentHashpower*(headStart/blocktime)`
 
-For this analysis, I'll use the difference between a miner with 50% of the hashpower and a miner with negligible hashpower.
+Finding the maximum `headStart` (aka `timeToReachEdge`)
 
-Compact block size is about [9 KB per MB](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/) of total block size.
+`maxAvgHeadStart = maxAvgTimeToReachEdge = blocktime*apparentExtraHashpower/percentHashpower`
 
-Finding the maximum `headStart`/`timeToReachEdge`
+Solving for maximum blocksize:
 
-`maxHeadStart = maxTimeToReachEdge = blocktime*apparentExtraHashpower/percentHashpower`
+`timeToReachEdge/hops = latencyDelay + transferDelay + validationDelay`
 
-Finding the maximum dataTransferred:
+`timeToReachEdge/hops = latencyDelay + 2*blocksize*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent*blocksize/transactionSize`
 
-`timeToReachEdge/hops = 3*latencyPerHop + dataTransferred/avgBandwidth + validationTime*transactionsPerBlock*missingTransactionPercent`
+`timeToReachEdge/hops = latencyDelay + blocksize*(2*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
 
-`maxDataTransferred = avgBandwidth*(timeToReachEdge/hops - 3*latencyPerHop - validationTime*transactionsPerBlock*missingTransactionPercent)`
+` maxBlocksize = (timeToReachEdge/hops - latencyDelay)/(2*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
 
-where
-
-* `transactionsPerBlock = blocksize/transactionSize`
-
-Putting this together:
-
-* `dt = dataTransferred`
-* `c = compactness`
-* `bs = blocksize`
-* `bt = blocktime`
-* `mt = missingTransactionPercent`
-* `tte = timeToReachEdge = headStart`
-* `h = hops`
-* `L = latencyPerHop`
-* `B = avgBandwidth`
-* `vt = validationTime`
-* `ts = transactionSize`
-* `mtp = missingTransactionPercent`
-* `aeh = apparentExtraHashpowerPercent`
-* `ph = percentHashpower`
-
-`dt = 2*bs*(c + mt)`
-
-`tte = h*(L+dt/B+vt*mtp*bs/ts)`
-
-`aeh = ph*tte/bt`
-
-Solving for `blocksize`:
-
-`tte/h - L = (2*bs*(c + mt))/B + vt*mtp*bs/ts`
-
-`tte/h - L = bs*((2*(c + mt))/B + vt*mtp/ts)`
-
-`bs = (tte/h - L)/((2*(c + mt))/B + vt*mtp/ts)`
-
-Adding in `tte` from the `aeh` equation:
-
-`tte = aeh*bt/ph`
-
-`bs = ((aeh*bt/ph)/h - L)/((2*(c + mt))/B + vt*mtp/ts)`
-
-`maxBlocksize = ((apparentExtraHashpowerPercent*blocktime/percentHashpower)/hops - 3*latencyPerHop)/((2*(compactness + missingTransactionPercent))/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
-
-We'll use the goal that the maximum advantage an entity with 50% of the hashpower could have is 0.1%.
-
-
-
-The Erlay paper has a latency chart showing experimentally determined average transction propagation time to X% of the Bitcoin network:
-
-![Erlay Latency Graph.png](Erlay Latency Graph.png)
-
-The propagation of "BTCFlood" for transactions should be very similar to block propagation. According to the graph, the average time to reach any particular node in the network can be calculated by measuring the area under the curve (estimating with right triangles):
-
-`1 + 0.25*.8/2 + 0.25*0.2 + (3.125-1.25)*0.2/2 = 1.34 seconds`
-
-
-
-
-The surface area within a great-circle distance of a point can be found using the [sphereical cap formula](http://mathworld.wolfram.com/SphericalCap.html), the [central angle](https://en.wikipedia.org/wiki/Central_angle), and the [law of cosines](https://en.wikipedia.org/wiki/Law_of_cosines).
-
-`area = 2*pi*radius*capHeight`
-
-`centralAngle = radius/surfaceDistance`
-
-`cos(centralAngle) = (radius-capHeight)/radius`
-
-From this we can find the `area` in terms of `surfaceDistance`:
-
-`radius-capHeight = radius*cos(radius/surfaceDistance)`
-
-`capHeight = radius*(1-cos(radius/surfaceDistance))`
-
-`area = 2*pi*radius*(radius*(1-cos(radius/surfaceDistance)))`
-
-`area = 2*pi*radius^2*(1-cos(radius/surfaceDistance))`
-
-
-
-
-
-
+` maxBlocksize = ((blocktime*apparentExtraHashpower/percentHashpower)/hops - 3*latencyPerHop)/(2*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
 
 
 
