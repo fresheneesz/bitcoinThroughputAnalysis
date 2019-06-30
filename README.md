@@ -6,6 +6,7 @@ Debate about growth of Bitcoin's blockchain has raged for years now. Some want t
 
 In this document, I will analyze the major throughput bottlenecks that currently constrain Bitcoin's safe throughput capacity and look into what throughput capacity we can expect in the future. These bottlenecks are all driven by stress put on the machines that make up the Bitcoin network in worst-case adversarial situations.
 
+- [Prior Work](#prior-work)
 - [Overview](#overview)
 - [The State of Available Machine Resources](#the-state-of-available-machine-resources)
 - [Assumptions](#assumptions)
@@ -19,10 +20,12 @@ In this document, I will analyze the major throughput bottlenecks that currently
   * [UTXO Set Disk Usage](#utxo-set-disk-usage)
   * [Blockchain & UTXO disk usage](#blockchain--utxo-disk-usage)
   * [UTXO Set Memory Usage](#utxo-set-memory-usage)
-- [Summary of the Current State of Bitcoin](#summary-of-the-current-state-of-bitcoin)
+  * [Mining Centralization Pressure](#mining-centralization-pressure)
+- [Summary of the Current Bottlenecks](#summary-of-the-current-bottlenecks)
 - [Potential Solutions](#potential-solutions)
   * [Assume UTXO](#assume-utxo)
   * [Erlay](#erlay)
+  * [Proactive Transaction Inclusion in Blocks](#proactive-transaction-inclusion-in-blocks)
   * [Fraud Proofs](#fraud-proofs)
   * [Assume UTXO, Ignore Historical](#assume-utxo-ignore-historical)
   * [Accumulators](#accumulators)
