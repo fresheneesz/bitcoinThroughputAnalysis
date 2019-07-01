@@ -273,7 +273,7 @@ The propagation of "BTCFlood" for transactions should be very similar to the lat
 
 `1 + 0.25*.8/2 + 0.25*0.2 + (3.125-1.25)*0.2/2 = 1.34 seconds`
 
-This matches up very closely to the latency I estimated on the spreadsheet (1.39s). This latency alone gives a miner with 25% of the hashpower a 0.05% mining advantage, which is half the stated goal even without including verification time or data transfer time.
+This matches up pretty closely to the latency I estimated on the spreadsheet (1.48s). This latency alone gives a miner with 25% of the hashpower a 0.05% mining advantage, which is half the stated goal even without including verification time or data transfer time.
 
 To gain some additional intuition about how latency, CPU power, and bandwidth affect miner centralization, I created a couple tables showing how much each component adds to the average block-propagation time for various values.
 
