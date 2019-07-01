@@ -271,7 +271,7 @@ The Erlay paper has a latency chart showing experimentally determined average tr
 
 The propagation of "BTCFlood" for transactions should be very similar to the latency of block propagation, since the time to download, verify, and upload are insignificant next to the latency. According to the graph, the average latency to any particular node in the network can be calculated by measuring the area under the curve (estimating with right triangles):
 
-`1 + 0.25*.8/2 + 0.25*0.2 + (3.125-1.25)*0.2/2 = 1.34 seconds`
+`(1*.9+0.25*.7/2+0.25*0.2+(3.125-1.25)*0.2/2)/.9 = 1.36 seconds`
 
 This matches up pretty closely to the latency I estimated on the spreadsheet (1.48s). This latency alone gives a miner with 25% of the hashpower a 0.05% mining advantage, which is half the stated goal even without including verification time or data transfer time.
 
