@@ -43,7 +43,7 @@ In this document, I will analyze the major throughput bottlenecks that currently
 
 LukeJr analyzed sync time and gave [results of his analysis](https://www.youtube.com/watch?v=CqNEQS80-h4) that lowering the blocksize maximum to 300KB would allow us to maintain the current sync time, and would allow sync time to decrease slowly over the years. But [his script](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/LukeJr's%20sync-time%20script.py) only calculates one bottleneck.
 
-BitFury produced [a paper](https://bitfury.com/content/downloads/block-size-1.1.1.pdf) in 2015 that has a lot of good information. The paper quantified the effect of blocksize on the basis of how many nodes would be excluded from the network. However, their estimate of how many nodes would be excluded is not well justified and doesn't attempt to estimate current or future nodes that are or will be excluded.
+[BitFury's paper on Block Size Increase](https://bitfury.com/content/downloads/block-size-1.1.1.pdf) in 2015 quantified the effect of blocksize on the basis of how many nodes would be excluded from the network. It contains a lot of good info, but their estimate of how many nodes would be excluded is not well justified and doesn't attempt to estimate current or future nodes that are or will be excluded.
 
 # Overview
 
@@ -88,15 +88,15 @@ I will choose system requirements for 90% of the users and for the top 10% of us
 
 ## Bandwidth
 
-Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was [around 5 Kbps or lower in 2016](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/). While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
+Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was around 5 Kbps or lower in 2016[5](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/). While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
 
-The worlds internet speeds are increasing around 25%/year ([23% in 2015](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf), [26% in 2016](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf), [30% in 2017](https://www.speedtest.net/insights/blog/global-speed-2017/)).
+The worlds internet speeds are increasing around 25%/year (23% in 2015[6](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf), 26% in 2016[7](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf), 30% in 2017[8](https://www.speedtest.net/insights/blog/global-speed-2017/)).
 
 ## Latency
 
 Latency is another factor that's relevant for time-sensitive data transmission, like propagating newly mined blocks.
 
-It takes light about 65ms to go halfway around the earth, and [in fiber optic cable](https://hpbn.co/primer-on-latency-and-bandwidth/) it takes about 100ms. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality this is 1.5 to 6 times as long. In addition, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL [1](https://potsandpansbyccg.com/tag/last-mile-latency/)[2](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/). It gets even worse for mobile phones, but we'll ignore that for our analysis.
+It takes light about 65ms to go halfway around the earth, and in fiber optic cable it takes about 100ms[9](https://hpbn.co/primer-on-latency-and-bandwidth/). So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality this is 1.5 to 6 times as long. In addition, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL<sup>[10](https://potsandpansbyccg.com/tag/last-mile-latency/)[11](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)</sup>. It gets even worse for mobile phones, but we'll ignore that for our analysis.
 
 All in all, we can expect perhaps around 90ms of latency per hop in the bitcoin network for nodes using fiber, 130ms for nodes using cable, and 250ms for nodes using something else (like DSL).
 
@@ -106,17 +106,17 @@ While we should see last-mile latency improve as more machines move to fiber (an
 
 I had a hard time finding data for disk space in the world, but I took a look at the [cheapest smartphones you can get in india](https://www.scoopwhoop.com/9-best-budget-smartphones-you-can-get-in-india-in-january-2019/) for an idea. The [Xiaomi Redmi Y2 specs](https://pricebaba.com/mobile/xiaomi-redmi-y2) can be bought for about 8,600 rupees ($120) and has 32GB of storage. This seems like a reasonable amount of storage to expect somone would have even in a poor country, given that you can get a 32GB SD card for $7 these days.
 
-The cost of hard disk space is declining at a rate of [about 25%](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/), tho that rate is slowing.
+The cost of hard disk space is declining at a rate of about 25% [14](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/), tho that rate is slowing.
 
 ## CPU speed
 
 I was not able to get good information about CPU speed because it's difficult to know how many transactions a machine with some given specs could validate. I would [be curious](https://bitcoin.stackexchange.com/questions/87864/how-can-i-calculate-estimate-how-quickly-a-machine-can-verify-transactions-on-th) to know more. However, [Eric Kuhn mentioned](https://twitter.com/erickuhn19/status/1095553655086804993) that verifying the transactions can be a much larger bottleneck than downloading them. There are about [415 million transactions](https://www.blockchain.com/charts/n-transactions-total) in the bitcoin blockchain, and if it can take 25 days to verify everything, as Eric Kuhn mentioned, that means his raspberry pi could only verify about 192 tps.
 
-The cost of cpu power is decreasing at less than [20%/year](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx), so I'll use LukeJr's number of 17%/year for cost of CPU power.
+The cost of cpu power is decreasing at less than 20%/year [15](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx), so I'll use LukeJr's number of 17%/year for cost of CPU power.
 
 ## Memory
 
-As for memory, the [Xiaomi Redmi Y2 specs](https://pricebaba.com/mobile/xiaomi-redmi-y2) (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user. Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
+As for memory, the Xiaomi Redmi Y2 (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user [13](https://pricebaba.com/mobile/xiaomi-redmi-y2). Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
 
 ## An aside about technological growth
 
@@ -267,7 +267,7 @@ The maximum block size that can support a given centralization pressure goal (`a
 
 The Erlay paper has a latency chart showing experimentally determined average transction propagation time to X% of the Bitcoin network:
 
-![Erlay Latency Graph.png](Erlay Latency Graph.png)
+![Erlay-Latency-Graph.png](Erlay-Latency-Graph.png)
 
 The propagation of "BTCFlood" for transactions should be very similar to the latency of block propagation, since the time to download, verify, and upload are insignificant next to the latency. According to the graph, the average latency to any particular node in the network can be calculated by measuring the area under the curve (estimating with right triangles):
 
@@ -349,7 +349,7 @@ Let's say our goal was to require an attacker to have only 1 chance in 10,000 to
 
 ## Proactive Transaction Inclusion in Blocks
 
-In my analysis of mining centralization pressure above, latency is multiplied by 3 because of back-and-forth messages that happen on broadcast of a block. However, if a node keeps track of which transactions its connections are known to already have, any transactions in a block that a connection is not known to have can be sent proactively with the block info so that no additional information is needed. This may transmit some extra transaction data, but it reduces latency by a factor of 3 because 2 out of 3 messages can be eliminated (the transaction request and response).
+In my analysis of mining centralization pressure above, latency is multiplied by 5 because of back-and-forth messages that happen on broadcast of a block. However, if a node keeps track of which transactions its connections are known to already have, any transactions in a block that a connection is not known to have can be sent proactively with the block info so that no additional information is needed. This may transmit some extra transaction data, but it could reduce latency by a factor of 5 because 4 out of 5 messages can be eliminated (the block inv, block request, transaction request, and transaction response).
 
 ## Fraud Proofs
 
@@ -654,38 +654,36 @@ So to make a likely more accurate estimate, we can simply divide the number of c
 
 `estimatedAvgHops = log(nodes)/log(connections/2)`
 
-Blocks would propagate through the fastest nodes in the network first. So for example, in a network where each full node has 10 full-node connections, we can expect data to propagate along the 10% fastest nodes in the network. However, since latency is an enormous factor in propagation of data through the Bitcoin network, the 10% fastest nodes won't quite be the 10th percentile users, but will skew towards users that are geographically closer to each sending node. What this means is that instead of seeing average latency of 125ms along each fastest-hop, we would more likely see 95ms average latency, but instead of seeing average transfer speeds of 155 Mbps we would more likely see 82 Mbps. This doesn't necessarily mean that data would propagate out mostly by geographic distance (as can be seen by looking at [videos of how blocks propagate](https://dsn.tm.kit.edu/bitcoin/videos.html)), but that lower latency connections would be favored somewhat.
+Blocks would propagate through the fastest nodes in the network first. Since every node is connected to at least 8 public nodes, and those public nodes are very likely to have better resources than most machines, I'll make a huge simplification and assume that the fastest path to each node is likely to travel through our 10th percentile nodes for all but the last hop. Also, since latency is a large factor for propagation of data through the Bitcoin network, lower-latency nodes will be the fastest connection more often, which means that the latency along each fastest-hop would be smaller than the average. This doesn't necessarily mean that data would propagate out mostly by geographic distance (as can be seen by looking at [videos of how blocks propagate](https://dsn.tm.kit.edu/bitcoin/videos.html)), but that lower latency connections would be favored somewhat.
 
-As a first approximation, one might assume that since 80% of the nodes should have 8 connections and 10% of the nodes should have 88 connections (the other 10% having no relevant connections), that means that 88.9% (`80/(80+10)`) of nodes will on average transfer to a 12.5 percentile machine (`1/8`), and 11.1% of the nodes will on average transfer to a 1.1 percentile machine. But given the above line of thinking that skews things toward slower, but closer (lower latency), machines, as a second approximation I'll say that 47% of nodes will transfer fastest to a 90th percentile machine, 47% of nodes will transfer fastest to a 10th percentile machine, and 6% of nodes will transfer to a 1st percentile machine.
+We also need to assume an adversarial environment. If an attacker is sybiling the system with slow nodes, that can slow down block propagation. If 90% of the nodes are attacker nodes, this would slow things down quite a bit. In order to combat this, it might be a good idea for nodes to attempt to find a minimum number of (maybe 5) connections to relatively fast nodes, measured by how much sooner on average those connections propagate data to them than other connections.
 
-This leads to an extimated average number of hops to any given node of about 8.5. See the "Latency-based Miner Centralization" section of the spreadsheet for details. It also leads to an assumed 83 Mbps bandwidth (only 10% expected to be used) and an average latency of 95ms.
-
-HOWEVER, since most 90% nodes won't have public connections, most connections for most nodes will be to 10th percentile machines or above. This changes the equation.
-
-Also however, we need to assume a worst-case-ish scenario. If many slow nodes are sybiling the system, that can slow down block propagation. If 90% of the nodes are attacker nodes, this would slow things down quite a bit. In order to combat this, I recommend that particularly slow outgoing connections should add to their banscore so that those slow outgoing connections are dropped in favor of a faster connection.
-
-Note that compact block size is about [9 KB per MB](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/) of total block size, giving a compact block size of about 0.9% of the total block size. Also, the Erlay paper notes that around 99% of transactions in a block have already been processed by a node by the time it was received and so don't need to be sent again. So I'll use that my estimates.
+Compact block size is about [9 KB per MB](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/) of total block size, giving a compact block size of about 0.9% of the total block size. Also, the Erlay paper notes that around 99% of transactions in a block have already been processed by a node by the time it was received and so don't need to be sent again. So I'll use that my estimates. Compact blocks (in high-bandwidth mode) are sent out *before* validation of the block [38](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki#Specification_for_version_1)], which means that a node's connections can request block-transactions they don't already have before that node is finished validating the block. This is safe because the block header must have a valid proof of work, which prevents any possibility of spam. Compact blocks require 3 hops of back-and-forth coordination, which means that for the block to a particular end-node, the block needs to travel through each relay-node on the path to that end-node and once the end-node receives the compact block, it must request missing transactions and then receive and validate those transactions.
 
 For each newly mined block, each node that's part of the relay must at minimum do the following:
 
-1. Download the block header (1x latency, negligible data)
-2. Upload a request for the transactions it hasn't already received (1x latency, negligible data)
-3. Download those missing transactions (1x latency, significant data on the order of the number of transactions)
-2. Validate the missing transactions
-3. Rebroadcast the block
+1. Receive a block inv message (1x latency)
+
+2. Send a sendcmpct message (1x latency)
+
+3. Download the compact block (1x latency, 0.9% of the transaction data)
+
+4. Send a request for the transactions it hasn't already received (1x latency, negligible data)
+
+5. Download, validate, and rebroadcast those missing transactions (1x latency, about 1% of the total transaction data)
 
 This means we can estimate the average time to reach all (or most) nodes as:
 
-`timeToReachEdge = hops*(latencyDelay + transferDelay + validationDelay)`
+`timeToReachEdge = latencyDelay + max(transferDelay, validationDelay)`
 
 where
 
-* `latencyDelay = 3*latencyPerHop`
+* `latencyDelay = (hops-1)*latencyPerMainHop + 5*latencyPerLastHop`
 * `transferDelay = dataTransferred/avgBandwidth`
-  * `dataTransferred = 2*(compactBlockSize + extraTransactionsSize)`
+  * `dataTransferred = compactBlockSize + extraTransactionsSize`
   * `compactBlockSize = compactness*blocksize`
   * `extraTransactionsSize = missingTransactionPercent*blocksize`
-* `validationDelay = validationTime*transactionsPerBlock*missingTransactionPercent`
+* `validationDelay = transactionsPerBlock*missingTransactionPercent/validationSpeed`
   * `transactionsPerBlock = blocksize/transactionSize`
 
 The centralization pressure can be measured by the advantage larger mining operations get over smaller ones. The apparent extra hashpower (as a percentage) can be given by:
@@ -696,18 +694,70 @@ Finding the maximum `headStart` (aka `timeToReachEdge`)
 
 `maxAvgHeadStart = maxAvgTimeToReachEdge = blocktime*apparentExtraHashpower/percentHashpower`
 
-Solving for maximum blocksize:
+Solving for maximum blocksize on the basis of data transfer:
 
-`timeToReachEdge/hops = latencyDelay + transferDelay + validationDelay`
+`maxTimeToReachEdge - latencyDelay = blocksize*(compactness + missingTransactionPercent)/avgBandwidth`
 
-`timeToReachEdge/hops = latencyDelay + 2*blocksize*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent*blocksize/transactionSize`
+`maxBlocksize = (maxTimeToReachEdge - latencyDelay)*avgBandwidth/(compactness + missingTransactionPercent)`
 
-`timeToReachEdge/hops = latencyDelay + blocksize*(2*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
+Solving for maximum blocksize on the basis of validation time:
 
-` maxBlocksize = (timeToReachEdge/hops - latencyDelay)/(2*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
+`maxTimeToReachEdge = latencyDelay + missingTransactionPercent*(blocksize/transactionSize)/validationSpeed`
 
-` maxBlocksize = ((blocktime*apparentExtraHashpower/percentHashpower)/hops - 3*latencyPerHop)/(2*(compactness + missingTransactionPercent)/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
+`maxTimeToReachEdge - latencyDelay = missingTransactionPercent*(blocksize/transactionSize)/validationSpeed`
 
+`maxBlocksize = (maxTimeToReachEdge - latencyDelay)*transactionSize*validationSpeed/missingTransactionPercent`
+
+## Appendix F - Latency improvement over time
+
+Since improving last-mile latency is the main way to reduce end-to-end latency, I'm going to use the following formula to estimate future latency:
+
+`latency(year) = curLatency - (curLatency - minLastMileLatency)*(1-latencyImprovement)^year`
+
+`latency(year) = (curLatency - minLastMileLatency) + minLastMileLatency - (curLatency - minLastMileLatency)*(1-latencyImprovement)^year`
+
+`latency(year) = minLastMileLatency +(curLatency - minLastMileLatency)*(1-(1-latencyImprovement)^year)`
+
+# References
+
+1. [Luke Jr on why block sizes shouldn't be too big](https://www.youtube.com/watch?v=CqNEQS80-h4).
+2. [Block Size Increase - BitFury](https://bitfury.com/content/downloads/block-size-1.1.1.pdf)
+3. [compact block FAQ - bitcoincore.org](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/)
+4. [List of countries by internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds)
+5. [Internet bandwidth - Country rankings - The Global Economy](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/)
+6. [State of the Internet 2015 - Akamai](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf)
+7. [State of the Internet 2017 - Akamai](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf)
+8. [Global Speeds 2017 - speedtest.net](https://www.speedtest.net/insights/blog/global-speed-2017/)
+9. [Primer on Latency and Bandwidth - O'Reilly](https://hpbn.co/primer-on-latency-and-bandwidth/)
+10. [Latency and Broadband Performance - CCG Consulting](https://potsandpansbyccg.com/tag/last-mile-latency/)
+11. [Latency: The New Web Performance Bottleneck - Ilya Grigorik](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)
+12. [9 Best Budget Smartphones You Can Get In India In January 2019 - scoopwhoop.com](https://www.scoopwhoop.com/9-best-budget-smartphones-you-can-get-in-india-in-january-2019/)
+13. [Xiaomi Redmi S2 - pricebaba.com](https://pricebaba.com/mobile/xiaomi-redmi-y2)
+14. [Hard Drive Cost Per Gigabyte - Andy Klein](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/)
+15. [Measuring Moore's Law](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx)
+16. [Memory Prices 1957-2019 - John McCallum](https://jcmit.net/memoryprice.htm)
+17. [Bitcoin Full Node Requirements](https://bitcoin.org/en/full-node#minimum-requirements)
+18. [On the Privacy Provisions of Bloom Filters in Lightweight Bitcoin Clients - Gervais et al](https://eprint.iacr.org/2014/763.pdf)
+19. [Thin-client Remote node lying through omission](https://bitcoin.stackexchange.com/questions/36643/thin-client-remote-node-lying-through-omission)
+20. [Could SPV Support a Billion Bitcoin Users? - James Lopp](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim)
+21. [Bitcoin’s Attack Vectors: Sybil & Eclipse Attacks - Matt ฿](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)
+22. [Bitcoin Core 0.14.0 Released: What’s New? - Bitcoin Magazine](https://bitcoinmagazine.com/articles/bitcoin-core-0140-released-whats-new/)
+23. [Bitcoin 0.14.0 Performance](https://www.reddit.com/r/Bitcoin/comments/5xomir/0140_is_a_beast_48_faster_initial_sync/)
+24. [Bitcoin Transactions per Second](https://www.blockchain.com/en/charts/transactions-per-second?timespan=all&daysAverageString=7)
+25. [Analysis of the Bitcoin UTXO set - Delgado-Segura et al](https://eprint.iacr.org/2017/1095.pdf)
+26. [UTXO uh-oh... - Gavin Andresen](http://gavinandresen.ninja/utxo-uhoh)
+27. [Relay Fallacy - Libbitcoin](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy)
+28. [Falcon, FIBRE and the Fast Relay Network](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784)
+29. [assumeutxo](https://github.com/bitcoin/bitcoin/issues/15605)
+30. [Erlay: Bandwidth-Efficient Transaction Relay - Naumenko, Maxwell, Wuille, Fedorava, Beschastnikh](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-May/016994.html)
+31. [Scaling Bitcoin workshop: Tokyo 2018](https://scalingbitcoin.org/transcript/tokyo2018/fraud-proofs)
+32. [A Short Summary of Solutions for UTXO Scaling](https://www.reddit.com/r/BitcoinDiscussion/comments/bz883v/a_short_summary_of_solutions_for_utxo_scaling/)
+33. [Utreexo](https://dci.mit.edu/utreexo)
+34. [Neutrino](https://blog.lightning.engineering/posts/2018/10/17/neutrino.html)
+35. [Monero's Dynamic Block Size and Dynamic Minimum Fee](https://github.com/JollyMort/monero-research/blob/master/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee%20-%20DRAFT.md)
+36. [Block Propagation videos - dsn.tm.kit.edu](https://dsn.tm.kit.edu/bitcoin/videos.html)
+37. [Compact Block FAQ](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/)
+38. [BIP 152 - Compact Block Relay](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki#Specification_for_version_1)
 
 
 
