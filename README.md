@@ -26,6 +26,7 @@ In this document, I will analyze the major throughput bottlenecks that currently
   * [Assume UTXO](#assume-utxo)
   * [Erlay](#erlay)
   * [Proactive Transaction Inclusion in Blocks](#proactive-transaction-inclusion-in-blocks)
+  * [Increased Block Times](#increased-block-times)
   * [Fraud Proofs](#fraud-proofs)
   * [Assume UTXO, Ignore Historical](#assume-utxo-ignore-historical)
   * [Accumulators](#accumulators)
@@ -38,6 +39,7 @@ In this document, I will analyze the major throughput bottlenecks that currently
 - [Future throughput](#future-throughput)
 - [Conclusions](#conclusions)
 - [Appendix](#appendix-a---derivation-of-initial-block-download-equations)
+- [References](#references)
 
 # Prior Work
 
@@ -47,34 +49,9 @@ LukeJr analyzed sync time and gave [results of his analysis](https://www.youtube
 
 # Overview
 
-In order to analyze Bitcoin's maximum throughput, its necessary to choose some support-goals: basically what minimum system requirements do we want Bitcoin to support for various aspects of running the network. Once we choose goals, we can calculate the transaction throughput at which those goals are barely met for each major process necessary for users on the Bitcoin network to do. Here are some considerations:
+Making the block size larger has a number of effects:
 
-1. We want as many people as practical to mine bitcoin.
-2. We want many people to support the network by passing around transactions and blocks.
-3. We want most people to be able to be able to fully verify their transactions so they have full self-sovereignty of their money.
-4. We want to be resilient in the face of chain splits. For example, if a majority wants to change bitcoin in a way that a minority thinks is dangerous or compromises the system, its important that minority can maintain the operation of their chain in the face of a majority split.
-5. We want to be resilient in the face of attempted eclipse attacks.
-6. We want mining to be as fair as possible - ie we want mining reward to scale as close to linearly with hashpower as possible.
-
-We don't need the people with the worst equipment to mine (#1), and we might not even need them to support the network (#2) very much, but we do want them to be able to be able to fully verify their own transactions (#3), and we want them to be able to know what chain they're on (#4).
-
-These considerations are all affected by transaction throughput and blocksize.
-
-\#1 is important to bitcoin, but may be the least affected by increased block size, since miners are generally either large powerful server farms or large mining pools. Miners are unlikely to drop out of bitcoin even if there were many orders of magnitude more transactions (as long as fees held up). However, there is the issue of block propagation time, which has only been partially mitigated with advancements like [compact blocks](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/).
-
-\#2 is important, but we don't need everyone to do it - just a critical mass. As long as even a small percentage of the network is honest and passes around data, the network can be supported during normal operation. The smaller this percentage, however, the more load nodes that do pass around this data must take on.
-
-\#3 This one is most affected by blocksize changes. SPV nodes are very tempting as they come up almost instantly, don't require any major harddrive space or processor usage, and also give security guarantees somewhat close to full nodes. So the more painful it is to be a full node, the more people are going to use an SPV node instead.
-
-\#4 In the case of a hard fork, SPV nodes won't know what's going on. They'll blindly follow whatever chain their SPV server is following. If enough SPV nodes take payments in the new currency rather than the old currency, they're more likely to acquiesce to the new chain even if they'd rather keep the old rules.
-
-\#5 is relevant because the primary tradeoff for this is that increasing the number of outgoing connections each node makes reduces their suceptibility, but this also increases network load for each node, especially if many nodes are leeching data but not seeding.
-
-\#6 is important because if significantly higher ROI can be gained by joining a large pool or investing in a larger miner, then mining operations will inevitably merge and centralize over time, giving enormous power to the controllers of large mining operations.
-
-Some of the effects of a larger blocksize:
-
-A. Users would need to store more data on their harddrive. This includes both nodes that store the historical blockchain as well as pruning nodes that need to store the UTXO set, since a larger blocksize is likely to mean more growth of the UTXO set (since at the moment, the average transaction creates more outputs than it consumes).
+A. Users would need to store more data on their hard drive. This includes both nodes that store the historical blockchain as well as pruning nodes that need to store the UTXO set, since a larger blocksize is likely to mean more growth of the UTXO set (because at the moment, the average transaction creates more outputs than it consumes).
 
 B. Users would need to use more bandwidth to download and upload more data from and to their peers.
 
@@ -82,25 +59,49 @@ C. Users would need to use more of their computer's CPU time and memory to verif
 
 D. Users who can't do A, B, or C (or feel its not worth it) would not be able to run a full node, and would instead use a less intensive node like an SPV node.
 
+E. Blocks would take longer to propagate through the network, which causes additional pressure for miners to merge or centralize.
+
+In order to analyze Bitcoin's maximum throughput, its necessary to choose some support-goals: basically what minimum system requirements do we want Bitcoin to support for various aspects of running the network. Once we choose goals, we can calculate the transaction throughput at which those goals are barely met for each major process necessary for users on the Bitcoin network to do. Here are some considerations:
+
+1. We want many people to support the network by passing around transactions and blocks.
+2. We want most people to be able to be able to fully verify their transactions so they have full self-sovereignty of their money.
+3. We want to be resilient in the face of chain splits. For example, if a majority wants to change bitcoin in a way that a minority thinks is dangerous or compromises the system, its important that minority can maintain the operation of their chain in the face of a majority split.
+4. We want to be resilient in the face of attempted eclipse attacks.
+5. We want many independent people/organizations to mine bitcoin. As part of this, we want mining to be as fair as possible (ie we want mining reward to scale as close to linearly with hashpower as possible), so that more people/organizations can independently mine profitably.
+
+We don't need the people with the worst equipment to mine (#5), and we might not even need them to support the network (#1) very much, but we do want them to be able to be able to fully verify their own transactions (#2), and we want them to be able to know what chain they're on (#3) and be able to withstand attempted eclipse attacks (#4).
+
+These considerations are all affected by transaction throughput and blocksize.
+
+\#1 is important, but we don't need everyone to do it - just a critical mass. As long as even a small percentage of the network is honest and passes around data, the network can be supported during normal operation. The smaller this percentage, however, the more load nodes that do pass around this data must take on.
+
+\#2 This one is most affected by blocksize changes. SPV nodes are very tempting as they come up almost instantly, don't require any major harddrive space or processor usage, and also give security guarantees somewhat close to full nodes. So the more painful it is to be a full node, the more people are going to use an SPV node instead.
+
+\#3 In the case of a hard fork, SPV nodes won't know what's going on. They'll blindly follow whatever chain their SPV server is following. If enough SPV nodes take payments in the new currency rather than the old currency, they're more likely to acquiesce to the new chain even if they'd rather keep the old rules.
+
+\#4 is relevant because the primary tradeoff for this is that increasing the number of outgoing connections each node makes reduces their suceptibility, but this also increases network load for each node, especially if many nodes are leeching data but not seeding.
+
+\#5 is important to bitcoin, but we don't need everyone to do it. Like relaying transactions (#1) we only need a critical mass to do this. Also mining has a different profile than the rest of the considerations, since miners are generally either large powerful server farms or large mining pools, and thus generally have access to much better machine resources. Miners are unlikely to drop out of bitcoin even if there were many orders of magnitude more transactions (as long as fees held up). However, there is the issue of block propagation time, which creates pressure for miners to centralize. If significantly higher ROI can be gained by joining a large pool or investing in a larger miner, then mining operations will inevitably merge and centralize over time, giving enormous power to the controllers of large mining operations. Propagation time has only been partially mitigated with advancements like [compact blocks](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/).
+
 # The State of Available Machine Resources
 
 I will choose system requirements for 90% of the users and for the top 10% of users, but first we need to understand what machine resources are available to people around the world.
 
 ## Bandwidth
 
-Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was around 5 Kbps or lower in 2016[5](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/). While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
+Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was around 5 Kbps or lower in 2016<sup>[[5](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/)</sup>. While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
 
-The worlds internet speeds are increasing around 25%/year (23% in 2015[6](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf), 26% in 2016[7](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf), 30% in 2017[8](https://www.speedtest.net/insights/blog/global-speed-2017/)).
+The worlds internet speeds are increasing around 25%/year (23% in 2015[6](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf), 26% in 2016<sup>[7](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf)</sup>, 30% in 2017<sup>[8](https://www.speedtest.net/insights/blog/global-speed-2017/))</sup>.
 
 ## Latency
 
 Latency is another factor that's relevant for time-sensitive data transmission, like propagating newly mined blocks.
 
-It takes light about 65ms to go halfway around the earth, and in fiber optic cable it takes about 100ms[9](https://hpbn.co/primer-on-latency-and-bandwidth/). So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality this is 1.5 to 6 times as long. In addition, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL<sup>[10](https://potsandpansbyccg.com/tag/last-mile-latency/)[11](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)</sup>. It gets even worse for mobile phones, but we'll ignore that for our analysis.
+It takes light about 65ms to go halfway around the earth, and in fiber optic cable it takes about 100ms<sup>[9](https://hpbn.co/primer-on-latency-and-bandwidth/)<sup>. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality the latency is 1.5 to 6 times as long because of other delays. For example, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL<sup>[[10](https://potsandpansbyccg.com/tag/last-mile-latency/)[[11](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)</sup>. It gets even worse for mobile phones, but we'll ignore that for our analysis.
 
 All in all, we can expect perhaps around 90ms of latency per hop in the bitcoin network for nodes using fiber, 130ms for nodes using cable, and 250ms for nodes using something else (like DSL).
 
-While we should see last-mile latency improve as more machines move to fiber (and from DSL to cable), it's unlikely we'll see much improvement in latency beyond that, since fiber is about as fast as it gets for light directed through a wire. If we treat 15ms as a near-minimum last-mile latency and assume that most of the reduction in latency in the US between 2010 and 2012 happened at the last mile, then that was actually about a 20% reduction in last-mile headroom latency. This translates to an 11%/year improvement. Outside of the US, there was no improvement in latency at all in those years. So for the purposes of this analysis, I'll use a 4%/year rate of improvement (asymptotically decreasing towards the speed-of-light minimum).
+While we should see last-mile latency improve as more machines move to fiber (and from DSL to cable), it's unlikely we'll see much improvement in latency beyond that, since fiber is about as fast as it gets for light directed through a wire. If we treat 15ms as a near-minimum last-mile latency and assume that most of the reduction in latency in the US between 2010 and 2012 happened at the last mile, then that was actually about a 20% reduction in last-mile headroom latency. This translates to an 11%/year improvement towards our assumed minimum. Outside of the US, there was no improvement in latency at all in those years. So for the purposes of this analysis, I'll use a 4%/year rate of improvement (asymptotically decreasing towards the speed-of-light minimum).
 
 ## Hard drive space
 
@@ -110,13 +111,13 @@ The cost of hard disk space is declining at a rate of about 25% [14](https://www
 
 ## CPU speed
 
-I was not able to get good information about CPU speed because it's difficult to know how many transactions a machine with some given specs could validate. I would [be curious](https://bitcoin.stackexchange.com/questions/87864/how-can-i-calculate-estimate-how-quickly-a-machine-can-verify-transactions-on-th) to know more. However, [Eric Kuhn mentioned](https://twitter.com/erickuhn19/status/1095553655086804993) that verifying the transactions can be a much larger bottleneck than downloading them. There are about [415 million transactions](https://www.blockchain.com/charts/n-transactions-total) in the bitcoin blockchain, and if it can take 25 days to verify everything, as Eric Kuhn mentioned, that means his raspberry pi could only verify about 192 tps.
+I was not able to get good information about CPU speed because it's difficult to know how many transactions a machine with some given specs could validate. I would [be curious](https://bitcoin.stackexchange.com/questions/87864/how-can-i-calculate-estimate-how-quickly-a-machine-can-verify-transactions-on-th) to know more. However, [Eric Kuhn mentioned](https://twitter.com/erickuhn19/status/1095553655086804993) that verifying the transactions can be a much larger bottleneck than downloading them. There are about [415 million transactions](https://www.blockchain.com/charts/n-transactions-total) in the bitcoin blockchain, and if it can take 25 days to verify everything, as Eric Kuhn mentioned, that means his raspberry pi could only verify about 192 tps. Also James Lopp [said a Casa node synced from the genesis node in 311 minutes](https://blog.keys.casa/bitcoin-full-validation-sync-performance/) in October 2018, which clocks in at about 18,500 tps. So there seems to be a pretty wide spread here.
 
 The cost of cpu power is decreasing at less than 20%/year [15](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx), so I'll use LukeJr's number of 17%/year for cost of CPU power.
 
 ## Memory
 
-As for memory, the Xiaomi Redmi Y2 (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user [13](https://pricebaba.com/mobile/xiaomi-redmi-y2). Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
+As for memory, the Xiaomi Redmi Y2 (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user<sup>[13](https://pricebaba.com/mobile/xiaomi-redmi-y2)</sup>. Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
 
 ## An aside about technological growth
 
@@ -124,7 +125,7 @@ The calculations done in this paper assume a constant exponential growth of mach
 
 # Assumptions
 
-In order to come up with hard numbers for throughput limits, I'm going to make up some hypothetical support goals and the state of people's computational resources. Bitcoin.org documents the [minimum requirements](https://bitcoin.org/en/full-node#minimum-requirements) for running a full node, however I think we want to substantially lower these requirements so as to make running a full node as accessible as possible to even people in poorer countries.
+In order to come up with hard numbers for throughput limits, I'm going to make up some hypothetical support goals and the state of people's computational resources. Bitcoin.org documents the [minimum requirements](https://bitcoin.org/en/full-node#minimum-requirements) for running a full node, however with the current state of technology, we should substantially lower these requirements so as to make running a full node as accessible as possible to even people in poorer countries, because of the (fixable) issues with SPV nodes at the moment.
 
 Not everyone can afford a dedicated node that uses 100% of its bandwidth/cpu/memory on bitcoin. We can reasonably expect that maybe 10% of a machine's resources go to bitcoin on an ongoing basis. During initial sync tho, we can reasonably require a bit more of a machine's processing power, since that's a temporary setup period.
 
@@ -140,7 +141,7 @@ IV. The top 10% of Bitcoin users should be able to store and seed the network wi
 
 V. An attacker with 50% of the public addresses in the network can have no more than 1 chance in 10,000 of eclipsing a victim that chooses random outgoing addresses.
 
-VI. The maximum advantage an entity with 25% of the hashpower could have (over a miner with near-zero hashpower) is the ability to mine 0.1% more blocks than their ratio of hashpower, even under a 50% sybiled network.
+VI. The maximum advantage an entity with 25% of the hashpower could have (over a miner with near-zero hashpower) is the ability to mine 0.1% more blocks than their ratio of hashpower, even for 10th percentile nodes, and even under a 50% sybiled network.
 
 For the purposes of this analysis, I'm going to use the following estimates:
 
@@ -149,7 +150,7 @@ For the purposes of this analysis, I'm going to use the following estimates:
 
 *See the "Ongoing Transaction Download & Upload" section for how 88 connections was calculated for the 10th percentile user.*
 
-Most of the bottom 10% that don't fall within these goals can be assumed to use SPV. An SPV node can give its user almost as much security as a full node, even tho it doesn't help the rest of the network.
+Most of the bottom 10% that don't fall within these goals can be assumed to use SPV. An SPV node can give its user almost as much security as a full node (except in important exceptional cases), even tho it doesn't help the rest of the network.
 
 # SPV Nodes
 
@@ -165,7 +166,7 @@ One obvious question is: why do we need or want most people to run full nodes? O
 
 The last two are most important.
 
-If the vast majority of the network is unable to protect against an invalid longer-chain, then everyone in the network is suceptible to an unwanted and unintentional change of consensus rules, which could potentially leech the majority of wealth onto a less secure branch. SPV nodes don't currently have any way to be aware of most types of consensus rules changes. Imagine 90% of Bitcoin users were using SPV nodes that couldn't tell if the longest chain contains invalid transactions or not. If the majority of miners decide to change the rules and add invalid transactions to their blocks, all of those users would start using that invalid chain. These people would not be moving on purpose, but would accidentally follow this new chain because they have no way of knowing that the chain is invalid. It's possible that enough people would hear about the rules change and understand enough about it to eat any loss (for the day or two they were on the wrong chain) and switch back. But it seems equally likely that people would simply do nothing and stay on the new chain, either because they assume they have no control, they don't understand what's going on, they've been tricked into thinking its a good idea, or any number of other reasons. This is why its imperative that a strong majority of users run clients that can discover whether the longest chain is valid or not.
+If the vast majority of the network is unable to protect against an invalid longer-chain, then everyone in the network is suceptible to an unwanted and unintentional change of consensus rules, which could potentially leech the majority of wealth onto a less secure branch. SPV nodes don't currently have any way to be aware of most types of consensus rules changes. Imagine 90% of Bitcoin users were using SPV nodes that couldn't tell if the longest chain contains invalid transactions or not. If the majority of miners decide to change the rules and add invalid transactions to their blocks, all of those users would start using that invalid chain. These people would not be moving on purpose, but would accidentally follow this new chain because they have no way of knowing that the chain is invalid. It's possible that enough people would hear about the rules change and understand enough about it to eat any loss (for the day or two they were on the wrong chain) and switch back. But it seems equally likely that people would simply do nothing and stay on the new chain, either because they assume they have no control, they don't understand what's going on, they've been tricked into thinking its a good idea, or any number of other reasons. This is why its imperative that a strong majority of users run clients that can automatically discover whether the longest chain is valid or not.
 
 Many of these problems can be solved, but the last one is fundamental and cannot be solved. Light nodes will always be more vulnerable in an eclipse attack. Its certainly possible that it can be effectively solved by reducing the likelyhood of an eclipse attack so there's no significant likelyhood of one being successful.
 
@@ -279,17 +280,17 @@ To gain some additional intuition about how latency, CPU power, and bandwidth af
 
 ![latencyIntuition.png](latencyIntuition.png)
 
-As you can see, bandwidth is likely the largest component, since the slowest connection in the path to any node is the limiting factor (and the end-node being transferred to is most likely to be the slowest machine in the path).
-
-Latency also makes up a significant fraction of the delay. It is also the most difficult component to improve, since latency of physical links is limited by the speed of light. Transaction validation can be a significant source of delay, but probably not quite as significant as latency at current blocksizes. Bandwidth affects delay the least. However, as blocksize increases, transfer time and validation time increase while latency doesn't. So these factors do still affect centralization pressure in a significant way.
+As you can see, latency is likely the largest component. Latency also makes up a significant fraction of the delay. It is also the most difficult component to improve, since latency of physical links is limited by the speed of light. Transaction validation can be a significant source of delay, but probably not quite as significant as latency at current blocksizes. Bandwidth affects delay the least. However, as blocksize increases, transfer time and validation time increase while latency doesn't. So these factors do still affect centralization pressure in a significant way.
 
 I estimated the maximum block size both in a situation without a sybil attack and with a sybil attack. If a sybil attack is in effect, sybil attackers could theoretically keep a low enough profile to not get banned but still slow down block propagation. They would do this by contributing at-average or slightly below-average amounts to the network, and by taking up valuable connections. If a sybil attacker has 50% of the public nodes, this would effectively reduce the usable connections by half.
 
-For the given goal of 0.1% centralization pressure for a miner with 25% of the hashpower, the upper-bound on average propagation time is 2.4 seconds. With my estimations for these values, we currently aren't meeting the goal in a non-sybil environment. The maximum blocksize that meets the goal is 600 KB. Its not much different for an environment with 50% sybil nodes.
+Because Bitcoin doesn't need the majority of users to mine, the nodes that mine can be machines with higher required resources. And because of the nature of a well-connected network that data will propagate through the fastest links first, slower nodes in the network won't affect how quickly miners receive block data. This actually makes mining centralization pressure currently one of the least constraining factors.
+
+For the given goal of 0.1% centralization pressure for a miner with 25% of the hashpower, the upper-bound on average propagation time is 2.4 seconds. With my estimations for these values, we are currently well within goals even in a sybil environment. The maximum blocksize that meets the goal is 20 MB.
 
 Keep in mind, the estimates given about centralization pressure are by far the estimates I'm least sure about in this write up, and centralization pressure is highly dependent on a ton of factors including connectivity of the network, geographic distribution of machines with various properties (processor power, bandwidth, latency, etc), network infrastructure, miner connectivity, and more. The FIBRE network is currently critical for keeping centralization pressure to a minimum, and we should attempt to maintain networks like that if at all possible.
 
-However, latency cannot be eliminated entirely and a small amount of centralization pressure will always exist for a proof of work system. Since latency improves very slowly and block propagation is primarly gated on latency, infrastructure improvements will not quickly solve this problem for us.
+While this may not be a problem now, latency cannot be eliminated entirely and a small amount of centralization pressure will always exist for any proof of work system. Since latency improves very slowly and block propagation is primarly gated on latency, infrastructure improvements for latency will not keep up with other factors (like CPU and memory cost). This means that centraliztion pressure will likely become more of an issue over time, relatively speaking in comparison to those other factors. 
 
 # Summary of the Current Bottlenecks
 
@@ -464,9 +465,9 @@ Nodes would fall into two tiers:
 
 Assume UTXO would be used in combination with fraud proofs to eliminate the need for downloading or validating historical parts of the blockchain. Erlay would be used to reduce bandwidth consumption to be almost independent from the number of connections. Utreexo (or a more advanced accumulator) would be used to store, in-memory, the entire set of information needed to validate transactions as long as those transactions come with inclusion proofs.
 
-In a situation where a longer but invalid chain is created, light nodes would be alerted by their full-node connections with fraud proofs. An emergency mode could protect second layers of the network from system-wide DOS attacks (or unintentional effective DOS).
+In a situation where a longer but invalid chain is created, light nodes would be alerted by their full-node connections with fraud proofs. An emergency mode could protect second layers of the network from system-wide DOS attacks (or unintentional effective DOS). It should be noted that even if 99% of the network consisted of SPV clients, the remaining 1% of full nodes should easily be able to serve data to those clients, since each SPV client needs so little data.
 
-Even tho scaling up 1000x from the current estimated 7 million bitcoin users to a world of 8 billion people adds a ton of people to the network, it doesn't actually add much to the number of average hops necessary to propagate blocks to the network. And with additional connections that Erlay makes possible, only about 1 additional hop would be needed an average. If nodes are keeping track of which transactions their connections have via Erlay reconcilliation once per second, then 4 out of 5 message trips can be eliminated by transfering the block and all transctions for that block that the connection isn't known to already have all at once. This would eliminate an enormous amount of latency-related delay. However doing all of this would only really double the maximum block size that could be safely supported according to our goals. So we can expect miner centralization pressure to be a major limiting factor in transction throughput.
+Even tho scaling up 1000x from the current estimated 7 million active bitcoin users<sup>[39](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)</sup> to a world of 8 billion people adds a ton of people to the network, it doesn't actually add much to the number of average hops necessary to propagate blocks to the network. And with additional connections that Erlay makes possible, only about 1 additional hop would be needed an average. If nodes are keeping track of which transactions their connections have via Erlay reconcilliation once per second, then 4 out of 5 message trips can be eliminated by transfering the block and all transctions for that block that the connection isn't known to already have all at once. This would eliminate an enormous amount of latency-related delay. However, the additional data that would need to be sent around for Utreexo transactions cancels out most of those gains.
 
 Here's a summary of how all these advancements would changes our limits:
 
@@ -477,6 +478,8 @@ Here's a summary of how all these advancements would changes our limits:
 We are currently well into the danger zone of transaction throughput. Using the very rough, hypothetical goals I used to do this analysis, Bitcoin cannot securely handle the amount of transactions it is currently processing. This is a problem not only for users who don't have access to machines that can run a full node, but for the Bitcoin network as a whole. If not enough people can run full nodes, it puts even those who can run full nodes at risk. If 95% of users are using SPV and a malicious chain happens, it means the 5% who are running full nodes suddenly can't pay or be paid by 95% of the world. That's a problem for everyone, not just the SPV nodes that have been tricked.
 
 I should stress that the goals used for this analysis are not well-researched enough to be taken for granted, and those goals should be reevaluated. I made it easy to change the goals in the [bottlenecks.xlsx](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/bottlenecks.xlsx?raw=true) spreadsheet, so its easy to see the analysis for various any goals one might want to choose.
+
+However, this can be backed up by looking at current usage estimates. It looks like there are around 100,000 full nodes running out there (see [lukejr's counter](https://luke.dashjr.org/programs/bitcoin/files/charts/software.html) and [a snapshot from May](https://twitter.com/francispouliot_/status/1125139855313387520)). However, since there are around 7 million active bitcoin users<sup>[39]</sup>, the vast majority of active users are not running full nodes - only about 1%. Now a large fraction of those people probably also unsafely store their coins on exchanges. While that can't really be considered the fault of Bitcoin software or the Bitcoin network, the likelihood is that if most of those people got off exchanges they would move to a light wallet of some kind. It's simply not at all safe for 99% of the network to run a wallet that can't determine whether the chain with the most work is a valid Bitcoin chain, much less wallets that have [all the problems of current SPV clients](#spv-nodes).
 
 Anyways, the good news is that ideas that have already been thought through can substantially scale Bitcoin to bring us back into a secure state. This will likely take many years to reach, but its very heartening that we have so much headroom to improve Bitcoin from its already impressive position.
 
@@ -714,7 +717,7 @@ Solving for maximum blocksize on the basis of validation time:
 
 `maxBlocksize = (maxTimeToReachEdge - latencyDelay)*transactionSize*validationSpeed/missingTransactionPercent`
 
-## Appendix F - Latency improvement over time
+# Appendix F - Latency improvement over time
 
 Since improving last-mile latency is the main way to reduce end-to-end latency, I'm going to use the following formula to estimate future latency:
 
@@ -764,6 +767,6 @@ Since improving last-mile latency is the main way to reduce end-to-end latency, 
 36. [Block Propagation videos - dsn.tm.kit.edu](https://dsn.tm.kit.edu/bitcoin/videos.html)
 37. [Compact Block FAQ](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/)
 38. [BIP 152 - Compact Block Relay](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki#Specification_for_version_1)
-
+39. [How Many People Use Bitcion - bitcoinmarketjournal.com](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)
 
 
