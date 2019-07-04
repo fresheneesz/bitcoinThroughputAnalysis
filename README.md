@@ -9,7 +9,7 @@ In this document, I will analyze the major throughput bottlenecks that currently
 - [Prior Work](#prior-work)
 - [Overview](#overview)
 - [The State of Available Machine Resources](#the-state-of-available-machine-resources)
-- [Assumptions](#assumptions)
+- [Assumptions and Goals](#assumptions-and-goals)
 - [SPV Nodes](#spv-nodes)
 - [Bottlenecks](#bottlenecks)
   * [Initial Block Download](#initial-block-download)
@@ -24,11 +24,11 @@ In this document, I will analyze the major throughput bottlenecks that currently
 - [Summary of the Current Bottlenecks](#summary-of-the-current-bottlenecks)
 - [Potential Solutions](#potential-solutions)
   * [Assume UTXO](#assume-utxo)
+  * [Assume UTXO, Ignore Historical](#assume-utxo-ignore-historical)
   * [Erlay](#erlay)
   * [Proactive Transaction Inclusion in Blocks](#proactive-transaction-inclusion-in-blocks)
   * [Increased Block Times](#increased-block-times)
   * [Fraud Proofs](#fraud-proofs)
-  * [Assume UTXO, Ignore Historical](#assume-utxo-ignore-historical)
   * [Accumulators](#accumulators)
   * [Upgraded SPV Nodes](#upgraded-spv-nodes)
   * [Distributed data storage](#distributed-data-storage)
@@ -97,7 +97,7 @@ The worlds internet speeds are increasing around 25%/year (23% in 2015[6](https:
 
 Latency is another factor that's relevant for time-sensitive data transmission, like propagating newly mined blocks.
 
-It takes light about 65ms to go halfway around the earth, and in fiber optic cable it takes about 100ms<sup>[9](https://hpbn.co/primer-on-latency-and-bandwidth/)<sup>. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality the latency is 1.5 to 6 times as long because of other delays. For example, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL<sup>[[10](https://potsandpansbyccg.com/tag/last-mile-latency/)[[11](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)</sup>. It gets even worse for mobile phones, but we'll ignore that for our analysis.
+It takes light about 65ms to go halfway around the earth, and in fiber optic cable it takes about 100ms<sup>[[9]](https://hpbn.co/primer-on-latency-and-bandwidth/)</sup>. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality the latency is 1.5 to 6 times as long because of other delays. For example, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL<sup>[[10]](https://potsandpansbyccg.com/tag/last-mile-latency/)[[11]](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)</sup>. It gets even worse for mobile phones, but we'll ignore that for our analysis.
 
 All in all, we can expect perhaps around 90ms of latency per hop in the bitcoin network for nodes using fiber, 130ms for nodes using cable, and 250ms for nodes using something else (like DSL).
 
