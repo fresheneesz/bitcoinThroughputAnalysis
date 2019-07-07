@@ -107,17 +107,17 @@ While we should see last-mile latency improve as more machines move to fiber (an
 
 I had a hard time finding data for disk space in the world, but I took a look at the [cheapest smartphones you can get in india](https://www.scoopwhoop.com/9-best-budget-smartphones-you-can-get-in-india-in-january-2019/) for an idea. The [Xiaomi Redmi Y2 specs](https://pricebaba.com/mobile/xiaomi-redmi-y2) can be bought for about 8,600 rupees ($120) and has 32GB of storage. This seems like a reasonable amount of storage to expect somone would have even in a poor country, given that you can get a 32GB SD card for $7 these days.
 
-The cost of hard disk space is declining at a rate of about 25% [14](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/), tho that rate is slowing.
+The cost of hard disk space is declining at a rate of about 25%<sup>[[14]](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/)</sup>, tho that rate is slowing.
 
 ## CPU speed
 
 I was not able to get good information about CPU speed because it's difficult to know how many transactions a machine with some given specs could validate. I would [be curious](https://bitcoin.stackexchange.com/questions/87864/how-can-i-calculate-estimate-how-quickly-a-machine-can-verify-transactions-on-th) to know more. However, [Eric Kuhn mentioned](https://twitter.com/erickuhn19/status/1095553655086804993) that verifying the transactions can be a much larger bottleneck than downloading them. There are about [415 million transactions](https://www.blockchain.com/charts/n-transactions-total) in the bitcoin blockchain, and if it can take 25 days to verify everything, as Eric Kuhn mentioned, that means his raspberry pi could only verify about 192 tps. Also James Lopp [said a Casa node synced from the genesis node in 311 minutes](https://blog.keys.casa/bitcoin-full-validation-sync-performance/) in October 2018, which clocks in at about 18,500 tps. So there seems to be a pretty wide spread here.
 
-The cost of cpu power is decreasing at less than 20%/year [15](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx), so I'll use LukeJr's number of 17%/year for cost of CPU power.
+The cost of cpu power is decreasing at less than 20%/year <sup>[[15]](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx)</sup>, so I'll use LukeJr's number of 17%/year for cost of CPU power.
 
 ## Memory
 
-As for memory, the Xiaomi Redmi Y2 (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user<sup>[13](https://pricebaba.com/mobile/xiaomi-redmi-y2)</sup>. Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
+As for memory, the Xiaomi Redmi Y2 (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user<sup>[[13]](https://pricebaba.com/mobile/xiaomi-redmi-y2)</sup>. Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
 
 ## An aside about technological growth
 
@@ -131,17 +131,17 @@ Not everyone can afford a dedicated node that uses 100% of its bandwidth/cpu/mem
 
 I will use the following hypothetical goals:
 
-I. 90% of Bitcoin users should be able to start a new node and fully sync with the chain (using assumevalid) within 1 week using at most 75% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
+**I.** 90% of Bitcoin users should be able to start a new node and fully sync with the chain (using assumevalid) within 1 week using at most 75% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
 
-II. 90% of Bitcoin users should be able to validate block and transaction data that is forwarded to them using at most 10% of the resources of a machine they already own.
+**II.** 90% of Bitcoin users should be able to validate block and transaction data that is forwarded to them using at most 10% of the resources of a machine they already own.
 
-III. 90% of Bitcoin users should be able to validate and forward data through the network using at most 10% of the resources of a machine they already own.
+**III.** 90% of Bitcoin users should be able to validate and forward data through the network using at most 10% of the resources of a machine they already own.
 
-IV. The top 10% of Bitcoin users should be able to store and seed the network with the entire blockchain using at most 10% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
+**IV.** The top 10% of Bitcoin users should be able to store and seed the network with the entire blockchain using at most 10% of the resources (bandwidth, disk space, memory, CPU time, and power) of a machine they already own.
 
-V. An attacker with 50% of the public addresses in the network can have no more than 1 chance in 10,000 of eclipsing a victim that chooses random outgoing addresses.
+**V.** An attacker with 50% of the public addresses in the network can have no more than 1 chance in 10,000 of eclipsing a victim that chooses random outgoing addresses.
 
-VI. The maximum advantage an entity with 25% of the hashpower could have (over a miner with near-zero hashpower) is the ability to mine 0.1% more blocks than their ratio of hashpower, even for 10th percentile nodes, and even under a 50% sybiled network.
+**VI.** The maximum advantage an entity with 25% of the hashpower could have (over a miner with near-zero hashpower) is the ability to mine 0.1% more blocks than their ratio of hashpower, even for 10th percentile nodes, and even under a 50% sybiled network.
 
 For the purposes of this analysis, I'm going to use the following estimates:
 
@@ -256,11 +256,13 @@ With these assumptions, the UTXO size is already too high to meet goals for our 
 
 ## Mining Centralization Pressure
 
-As of this writing, miners use the Bitcoin FIBRE network (aka Matt Corallo's relay network), which closely connects them together to reduce latency. However, the Fibre relay [cannot determine if data is valid](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy) because of the way the Forward Error Correction works. This opens up an opportunity for attackers to spam the relay network. The Faclon network, developed by Cornell researchers, is another proposal to speed up relay, but it presumably also has the same problem since data is relayed without being validated by most nodes. Also, both FIBRE and Falcon [are centralized systems](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784) and so rely on trusting the controlling entities (like Matt Corallo or Cornell) not to play favorites or be compromised by another entity (like a government).
+As of this writing, miners use the Bitcoin FIBRE network (aka Matt Corallo's relay network), which closely connects them together to reduce latency. However, the Fibre relay [cannot determine if data is valid](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy) because of the way the Forward Error Correction works. This opens up an opportunity for attackers to spam the relay network. The Faclon network, developed by Cornell researchers, is another proposal to speed up relay, but it presumably also has the same problem since data is relayed without being validated by most nodes. Also, both FIBRE and Falcon are protocols that are run on [permissioned centralized systems](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784) and so rely on trusting the controlling entities (like Matt Corallo or Cornell) not to play favorites or be compromised by another entity (like a government). For example, the Fast Relay Network is run by Matt Corallo and requires nodes to register with Matt Corallo's system in order to connect.
 
 If the fast relay networks are disrupted, miners may have to fall back to using basic block relay to obtain the most recently mined block. Each full node that relays a block would have to receive and validate each transaction in the block before passing each on, which significantly adds to the latency between block broadcast and receipt of all of a block's data by the rest of the miners.
 
 More latency means more centralization pressure because this latency represents the "head start" that the miner who mined the latest block gets in mining the next block. Miners that mine blocks more often (larger miners) would get this "head start" more often, which translates into an advantage out of proportion with their share of hashpower.
+
+In 2014, ghash.io obtained [greater than 50%](https://www.extremetech.com/extreme/184427-one-bitcoin-group-now-controls-51-of-total-mining-power-threatening-entire-currencys-safety) of the bitcoin hashpower. This was widely supposed to be caused by increased orphan rates for smaller mining pools. While its not 100% clear that centralization caused this scenario, its certainly possible. In 2015, it took an average of 11 seconds to reach half the nodes in the network<sup>[Bitcoin Network Capacity Analysis – Part 6: Data Propagation - tradeblock.com](https://tradeblock.com/blog/bitcoin-network-capacity-analysis-part-6-data-propagation)</sup>. That number is supported by the number found by Decker and Wattenhofer of 12.6 seconds<sup>[Information Propagation in the Bitcoin Network](http://www.gsd.inesc-id.pt/~ler/docencia/rcs1314/papers/P2P2013_041.pdf)</sup>. This is quite a lot of delay, however it represents delay to all nodes in the network rather than delay to all mining nodes in the network. The delay to nodes that actually were trying to mine was strictly less than that. How much less isn't something I have data for.
 
 The maximum block size that can support a given centralization pressure goal (`apparentExtraHashpowerPercent`) for a given amount of hashpower (`percentHashpower`), can be expressed as (see Appendix E):
 
