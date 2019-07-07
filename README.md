@@ -89,15 +89,15 @@ I will choose system requirements for 90% of the users and for the top 10% of us
 
 ## Bandwidth
 
-Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was around 5 Kbps or lower in 2016<sup>[[7](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/)</sup>. While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
+Taking a look at [the world's lowest ranking peak internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds), it gets down to 1.4 Mbps. And according to The International Telecommunication Union, the average bandwidth per user for the lowest ranking countries was around 5 Kbps or lower in 2016<sup>[[6](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/)</sup>. While in the future, we definitely would like Bitcoin to be able to reach the poorest of people, currently that's unrealistic, so I'll choose 1 Mbps as the speed available to the 90th percentile Bitcoin user.
 
-The worlds internet speeds are increasing around 25%/year (23% in 2015<sup>[[8]](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf)</sup>, 26% in 2016<sup>[[9]](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf)</sup>, 30% in 2017<sup>[[10]](https://www.speedtest.net/insights/blog/global-speed-2017/))</sup>.
+The worlds internet speeds are increasing around 25%/year (23% in 2015<sup>[[7]](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf)</sup>, 26% in 2016<sup>[[8]](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf)</sup>, 30% in 2017<sup>[[9]](https://www.speedtest.net/insights/blog/global-speed-2017/))</sup>.
 
 ## Latency
 
 Latency is another factor that's relevant for time-sensitive data transmission, like propagating newly mined blocks.
 
-It takes light about 65ms to go halfway around the earth, and in fiber optic cable it takes about 100ms<sup>[[11]](https://hpbn.co/primer-on-latency-and-bandwidth/)</sup>. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality the latency is 1.5 to 6 times as long because of other delays. For example, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL<sup>[[12]](https://potsandpansbyccg.com/tag/last-mile-latency/)[[13]](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)</sup>. It gets even worse for mobile phones, but we'll ignore that for our analysis.
+It takes light about 65ms to go halfway around the earth, and in fiber optic cable it takes about 100ms<sup>[[10]](https://hpbn.co/primer-on-latency-and-bandwidth/)</sup>. So one could expect any hop (to another bitcoin node) to have an average of at about 50ms of latency per hop. In reality the latency is 1.5 to 6 times as long because of other delays. For example, last-mile latency is a significant factor adding around 15ms for fiber connections, 25ms for cable connections, and 45ms for DSL<sup>[[11]](https://potsandpansbyccg.com/tag/last-mile-latency/)[[13]](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)</sup>. It gets even worse for mobile phones, but we'll ignore that for our analysis.
 
 All in all, we can expect perhaps around 90ms of latency per hop in the bitcoin network for nodes using fiber, 130ms for nodes using cable, and 250ms for nodes using something else (like DSL).
 
@@ -107,17 +107,17 @@ While we should see last-mile latency improve as more machines move to fiber (an
 
 I had a hard time finding data for disk space in the world, but I took a look at the [cheapest smartphones you can get in india](https://www.scoopwhoop.com/9-best-budget-smartphones-you-can-get-in-india-in-january-2019/) for an idea. The [Xiaomi Redmi Y2 specs](https://pricebaba.com/mobile/xiaomi-redmi-y2) can be bought for about 8,600 rupees ($120) and has 32GB of storage. This seems like a reasonable amount of storage to expect somone would have even in a poor country, given that you can get a 32GB SD card for $7 these days.
 
-The cost of hard disk space is declining at a rate of about 25%<sup>[[16]](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/)</sup>, tho that rate is slowing.
+The cost of hard disk space is declining at a rate of about 25%<sup>[[15]](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/)</sup>, tho that rate is slowing.
 
 ## CPU speed
 
 I was not able to get good information about CPU speed because it's difficult to know how many transactions a machine with some given specs could validate. I would [be curious](https://bitcoin.stackexchange.com/questions/87864/how-can-i-calculate-estimate-how-quickly-a-machine-can-verify-transactions-on-th) to know more. However, [Eric Kuhn mentioned](https://twitter.com/erickuhn19/status/1095553655086804993) that verifying the transactions can be a much larger bottleneck than downloading them. There are about [415 million transactions](https://www.blockchain.com/charts/n-transactions-total) in the bitcoin blockchain, and if it can take 25 days to verify everything, as Eric Kuhn mentioned, that means his raspberry pi could only verify about 192 tps. Also James Lopp [said a Casa node synced from the genesis node in 311 minutes](https://blog.keys.casa/bitcoin-full-validation-sync-performance/) in October 2018, which clocks in at about 18,500 tps. So there seems to be a pretty wide spread here.
 
-The cost of cpu power is decreasing at less than 20%/year <sup>[[20]](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx)</sup>, so I'll use LukeJr's number of 17%/year for cost of CPU power.
+The cost of cpu power is decreasing at less than 20%/year <sup>[[19]](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx)</sup>, so I'll use LukeJr's number of 17%/year for cost of CPU power.
 
 ## Memory
 
-As for memory, the Xiaomi Redmi Y2 (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user<sup>[[15]](https://pricebaba.com/mobile/xiaomi-redmi-y2)</sup>. Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
+As for memory, the Xiaomi Redmi Y2 (which I also used for its disk space specs) has 3 GB of RAM. So we'll use 2 GB for the 90th percentile user<sup>[[14]](https://pricebaba.com/mobile/xiaomi-redmi-y2)</sup>. Memory has been decreasing in cost by [about 15%/year](https://jcmit.net/memoryprice.htm) (See also [my calculations](memoryCostOverTime.xlsx) on that data).
 
 ## An aside about technological growth
 
@@ -250,25 +250,25 @@ Currently, the maximum blockchain size that can fit in 10% of our 10th percentil
 
 ## UTXO Set Memory Usage
 
-According to [out of date information](http://gavinandresen.ninja/utxo-uhoh), the UTXO set is about 6.4 times the size of the form as it exists on disk. At the same time, the entire UTXO set doesn't need to be stored in memory, but the less a node keeps in memory, the slower it'll validate transaction on average. The current default for --dbcache is 450 MB<sup>[[34]](https://github.com/bitcoin/bitcoin/blob/452bb90c718da18a79bfad50ff9b7d1c8f1b4aa3/doc/release-notes/release-notes-0.14.1.md)</sup>. For this analysis, I've assumed that keeping 2.3% (450 MB / 3 GB) of the UTXO set in memory is a near-optimal tradeoff (ie doesn't lose you significant validation speed).
+According to [out of date information](http://gavinandresen.ninja/utxo-uhoh), the UTXO set is about 6.4 times the size of the form as it exists on disk. At the same time, the entire UTXO set doesn't need to be stored in memory, but the less a node keeps in memory, the slower it'll validate transaction on average. The current default for --dbcache is 450 MB<sup>[[33]](https://github.com/bitcoin/bitcoin/blob/452bb90c718da18a79bfad50ff9b7d1c8f1b4aa3/doc/release-notes/release-notes-0.14.1.md)</sup>. For this analysis, I've assumed that keeping 2.3% (450 MB / 3 GB) of the UTXO set in memory is a near-optimal tradeoff (ie doesn't lose you significant validation speed).
 
 With these assumptions, the UTXO size is already too high to meet goals for our 90th percentile user by a factor of 3, and we can only expect this to get worse over time.
 
 ## Mining Centralization Pressure
 
-As of this writing, miners use the Bitcoin FIBRE network (aka Matt Corallo's relay network), which closely connects them together to reduce latency. However, the Fibre relay cannot determine if data is valid because of the way the Forward Error Correction works<sup>[[35]](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy)</sup>. This opens up an opportunity for attackers to spam the relay network. The Faclon network, developed by Cornell researchers, is another proposal to speed up relay, but it presumably also has the same problem since data is relayed without being validated by most nodes. Also, both FIBRE and Falcon are protocols that are permissioned by a centralized system<sup>[[36]](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784)</sup> and so rely on trusting the controlling entities (like Matt Corallo or Cornell) not to play favorites or be compromised by another entity (like a government). For example, the Fast Relay Network is run by Matt Corallo and requires nodes to register with Matt Corallo's system in order to connect.
+As of this writing, miners use the Bitcoin FIBRE network (aka Matt Corallo's relay network), which closely connects them together to reduce latency. However, the Fibre relay cannot determine if data is valid because of the way the Forward Error Correction works<sup>[[34]](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy)</sup>. This opens up an opportunity for attackers to spam the relay network. The Faclon network, developed by Cornell researchers, is another proposal to speed up relay, but it presumably also has the same problem since data is relayed without being validated by most nodes. Also, both FIBRE and Falcon are protocols that are permissioned by a centralized system<sup>[[35]](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784)</sup> and so rely on trusting the controlling entities (like Matt Corallo or Cornell) not to play favorites or be compromised by another entity (like a government). For example, the Fast Relay Network is run by Matt Corallo and requires nodes to register with Matt Corallo's system in order to connect.
 
 If the fast relay networks are disrupted, miners may have to fall back to using basic block relay to obtain the most recently mined block. Each full node that relays a block would have to receive and validate each transaction in the block before passing each on, which significantly adds to the latency between block broadcast and receipt of all of a block's data by the rest of the miners.
 
 More latency means more centralization pressure because this latency represents the "head start" that the miner who mined the latest block gets in mining the next block. Miners that mine blocks more often (larger miners) would get this "head start" more often, which translates into an advantage out of proportion with their share of hashpower.
 
-In 2014, ghash.io obtained greater than 50% of the bitcoin hashpower<sup>[[37]](https://www.extremetech.com/extreme/184427-one-bitcoin-group-now-controls-51-of-total-mining-power-threatening-entire-currencys-safety)</sup>. This was widely supposed to be caused by increased orphan rates for smaller mining pools. While its not 100% clear that centralization pressure caused this scenario, its certainly possible. In 2015, it took an average of 11 seconds to reach half the nodes in the network<sup>[[38]](https://tradeblock.com/blog/bitcoin-network-capacity-analysis-part-6-data-propagation)</sup> and in 2013 the average was about 12.6 seconds<sup>[39](http://www.gsd.inesc-id.pt/~ler/docencia/rcs1314/papers/P2P2013_041.pdf)</sup>. This is quite a lot of delay, however it represents delay to all nodes in the network rather than delay to all mining nodes in the network. The delay to nodes that actually were trying to mine was strictly less than that. How much less isn't something I have data for.
+In 2014, ghash.io obtained greater than 50% of the bitcoin hashpower<sup>[[36]](https://www.extremetech.com/extreme/184427-one-bitcoin-group-now-controls-51-of-total-mining-power-threatening-entire-currencys-safety)</sup>. This was widely supposed to be caused by increased orphan rates for smaller mining pools. While its not 100% clear that centralization pressure caused this scenario, its certainly possible. In 2015, it took an average of 11 seconds to reach half the nodes in the network<sup>[[37]](https://tradeblock.com/blog/bitcoin-network-capacity-analysis-part-6-data-propagation)</sup> and in 2013 the average was about 12.6 seconds<sup>[[38]](http://www.gsd.inesc-id.pt/~ler/docencia/rcs1314/papers/P2P2013_041.pdf)</sup>. This is quite a lot of delay, however it represents delay to all nodes in the network rather than delay to all mining nodes in the network. The delay to nodes that actually were trying to mine was strictly less than that. How much less isn't something I have data for.
 
 The maximum block size that can support a given centralization pressure goal (`apparentExtraHashpowerPercent`) for a given amount of hashpower (`percentHashpower`), can be expressed as (see Appendix E):
 
 `maxBlocksize = ((apparentExtraHashpowerPercent*blocktime/percentHashpower)/hops - 3*latencyPerHop)/((2*(compactness + missingTransactionPercent))/avgBandwidth + validationTime*missingTransactionPercent/transactionSize)`
 
-The Erlay paper<sup>[[40]]</sup> has a latency chart showing experimentally determined average transction propagation time to X% of the Bitcoin network:
+The Erlay paper<sup>[[39]]</sup> has a latency chart showing experimentally determined average transction propagation time to X% of the Bitcoin network:
 
 ![Erlay-Latency-Graph.png](Erlay-Latency-Graph.png)
 
@@ -474,7 +474,7 @@ In a situation where a longer but invalid chain is created, light nodes would be
 
 SPV nodes that use neutrino still have an initial sync burden that scales linear with number of transations per second, and so its possible that SPV initial sync becomes a bottleneck at some point in the future. It should be noted that even if 99% of the network consisted of SPV clients, the remaining 1% of full nodes should easily be able to serve data to those clients, since each SPV client needs so little data (each neutrino block is less than 1% the size of a full block).
 
-Even tho scaling up 1000x from the current estimated 7 million active bitcoin users<sup>[39](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)</sup> to a world of 8 billion people adds a ton of people to the network, it doesn't actually add much to the number of average hops necessary to propagate blocks to the network. And with additional connections that Erlay makes possible, only about 1 additional hop would be needed an average. If nodes are keeping track of which transactions their connections have via Erlay reconcilliation once per second, then 4 out of 5 message trips can be eliminated by transfering the block and all transctions for that block that the connection isn't known to already have all at once. This would eliminate an enormous amount of latency-related delay. However, the additional data that would need to be sent around for Utreexo transactions cancels out most of those gains.
+Even tho scaling up 1000x from the current estimated 7 million active bitcoin users<sup>[[47]](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)</sup> to a world of 8 billion people adds a ton of people to the network, it doesn't actually add much to the number of average hops necessary to propagate blocks to the network. And with additional connections that Erlay makes possible, only about 1 additional hop would be needed an average. If nodes are keeping track of which transactions their connections have via Erlay reconcilliation once per second, then 4 out of 5 message trips can be eliminated by transfering the block and all transctions for that block that the connection isn't known to already have all at once. This would eliminate an enormous amount of latency-related delay. However, the additional data that would need to be sent around for Utreexo transactions cancels out most of those gains.
 
 Here's a summary of how all these advancements would changes our limits:
 
@@ -484,7 +484,7 @@ Here's a summary of how all these advancements would changes our limits:
 
 At the moment, we are likely well into the danger zone of transaction throughput. Using the very rough, hypothetical goals I used to do this analysis, Bitcoin cannot securely handle the amount of transactions it is currently processing. This is a problem not only for users who don't have access to machines that can run a full node, but for the Bitcoin network as a whole. If not enough people can run full nodes, it puts even those who can run full nodes at risk. If 95% of users are using SPV and a malicious chain happens, it means the 5% who are running full nodes suddenly can't pay or be paid by 95% of the world. That's a problem for everyone, not just the SPV nodes that have been tricked.
 
-This can be backed up by looking at current usage estimates. It looks like there are around 100,000 full nodes running out there<sup>[[47]]</sup>. However, since there are around 7 million active bitcoin users<sup>[[48]](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)</sup>, the vast majority of active users are not running full nodes - only about 1%. Now a large fraction of those people probably also unsafely store their coins on exchanges. While that can't really be considered the fault of Bitcoin software or the Bitcoin network, the likelihood is that if most of those people got off exchanges they would move to a light wallet of some kind. It's simply not safe for 99% of the network to run a wallet that can't determine whether the chain with the most work is a valid Bitcoin chain, much less wallets that have [all the problems of current SPV clients](#spv-nodes).
+This can be backed up by looking at current usage estimates. It looks like there are around 100,000 full nodes running out there<sup>[[46]]</sup>. However, since there are around 7 million active bitcoin users<sup>[[47]](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)</sup>, the vast majority of active users are not running full nodes - only about 1%. Now a large fraction of those people probably also unsafely store their coins on exchanges. While that can't really be considered the fault of Bitcoin software or the Bitcoin network, the likelihood is that if most of those people got off exchanges they would move to a light wallet of some kind. It's simply not safe for 99% of the network to run a wallet that can't determine whether the chain with the most work is a valid Bitcoin chain, much less wallets that have [all the problems of current SPV clients](#spv-nodes).
 
 I should stress that the goals used for this analysis are not well-researched enough to be taken for granted, and those goals should be reevaluated. I made it easy to change the goals in the [bottlenecks.xlsx](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/bottlenecks.xlsx?raw=true) spreadsheet, so its easy to see the analysis for various any goals one might want to choose.
 
@@ -679,7 +679,7 @@ Blocks would propagate through the fastest nodes in the network first. Since eve
 
 We also need to assume an adversarial environment. If an attacker is sybiling the system with slow nodes, that can slow down block propagation. If 90% of the nodes are attacker nodes, this would slow things down quite a bit. In order to combat this, it might be a good idea for nodes to attempt to find a minimum number of (maybe 5) connections to relatively fast nodes, measured by how much sooner on average those connections propagate data to them than other connections.
 
-Compact block size is about [9 KB per MB](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/) of total block size, giving a compact block size of about 0.9% of the total block size. Also, the Erlay paper notes that around 99% of transactions in a block have already been processed by a node by the time it was received and so don't need to be sent again. So I'll use that my estimates. Compact blocks (in high-bandwidth mode) are sent out *before* validation of the block<sup>[[51]](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki#Specification_for_version_1)]</sup>, which means that a node's connections can request block-transactions they don't already have before that node is finished validating the block. This is safe because the block header must have a valid proof of work, which prevents any possibility of spam. Compact blocks require 3 hops of back-and-forth coordination, which means that for the block to a particular end-node, the block needs to travel through each relay-node on the path to that end-node and once the end-node receives the compact block, it must request missing transactions and then receive and validate those transactions.
+Compact block size is about [9 KB per MB](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/) of total block size, giving a compact block size of about 0.9% of the total block size. Also, the Erlay paper notes that around 99% of transactions in a block have already been processed by a node by the time it was received and so don't need to be sent again. So I'll use that my estimates. Compact blocks (in high-bandwidth mode) are sent out *before* validation of the block<sup>[[50]](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki#Specification_for_version_1)]</sup>, which means that a node's connections can request block-transactions they don't already have before that node is finished validating the block. This is safe because the block header must have a valid proof of work, which prevents any possibility of spam. Compact blocks require 3 hops of back-and-forth coordination, which means that for the block to a particular end-node, the block needs to travel through each relay-node on the path to that end-node and once the end-node receives the compact block, it must request missing transactions and then receive and validate those transactions.
 
 For each newly mined block, each node that's part of the relay must at minimum do the following:
 
@@ -742,53 +742,52 @@ Since improving last-mile latency is the main way to reduce end-to-end latency, 
 # References
 
 1. [7 Misunderstandings of Bitcoin’s Scaling Problem - Cryptoconomy](https://medium.com/@thecryptoconomy/7-misunderstandings-of-bitcoins-scaling-problem-c5142e938a68)
-2. [7 Misunderstandings of Bitcoin’s Scaling Problem - Cryptoconomy](https://medium.com/@thecryptoconomy/7-misunderstandings-of-bitcoins-scaling-problem-c5142e938a68)
-3. [Luke Jr on why block sizes shouldn't be too big](https://www.youtube.com/watch?v=CqNEQS80-h4). [This](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/LukeJr's%20sync-time%20script.py) is the script he used to get those numbers.
-4. [Block Size Increase - BitFury](https://bitfury.com/content/downloads/block-size-1.1.1.pdf)
-5. [compact block FAQ - bitcoincore.org](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/)
-6. [List of countries by internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds)
-7. [Internet bandwidth - Country rankings - The Global Economy](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/)
-8. [State of the Internet 2015 - Akamai](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf)
-9. [State of the Internet 2017 - Akamai](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf)
-10. [Global Speeds 2017 - speedtest.net](https://www.speedtest.net/insights/blog/global-speed-2017/)
-11. [Primer on Latency and Bandwidth - O'Reilly](https://hpbn.co/primer-on-latency-and-bandwidth/)
-12. [Latency and Broadband Performance - CCG Consulting](https://potsandpansbyccg.com/tag/last-mile-latency/)
-13. [Latency: The New Web Performance Bottleneck - Ilya Grigorik](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)
-14. [9 Best Budget Smartphones You Can Get In India In January 2019 - scoopwhoop.com](https://www.scoopwhoop.com/9-best-budget-smartphones-you-can-get-in-india-in-january-2019/)
-15. [Xiaomi Redmi S2 - pricebaba.com](https://pricebaba.com/mobile/xiaomi-redmi-y2)
-16. [Hard Drive Cost Per Gigabyte - Andy Klein](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/)
-17. [Eric Kuhn's tweet about verification speed on a raspbery pi](https://twitter.com/erickuhn19/status/1095553655086804993)
-18. [Chart of total Bitcoin transactions over time](https://www.blockchain.com/charts/n-transactions-total)
-19. [Bitcoin Full Validation Sync Performance - James Lopp](https://blog.keys.casa/bitcoin-full-validation-sync-performance/)
-20. [Measuring Moore's Law](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx)
-21. [Memory Prices 1957-2019 - John McCallum](https://jcmit.net/memoryprice.htm). See also [my calculations](memoryCostOverTime.xlsx) on that data.
-22. [Bitcoin Full Node Requirements](https://bitcoin.org/en/full-node#minimum-requirements)
-23. [On the Privacy Provisions of Bloom Filters in Lightweight Bitcoin Clients - Gervais et al](https://eprint.iacr.org/2014/763.pdf)
-24. [Thin-client remote node lying through omission - Stack Exchange question](https://bitcoin.stackexchange.com/questions/36643/thin-client-remote-node-lying-through-omission)
-25. [Could SPV Support a Billion Bitcoin Users? - James Lopp](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim)
-26. [Bitcoin’s Attack Vectors: Sybil & Eclipse Attacks - Matt ฿](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)
-27. [Bitcoin Core 0.14.0 Released: What’s New? - Bitcoin Magazine](https://bitcoinmagazine.com/articles/bitcoin-core-0140-released-whats-new/)
-28. [Bitcoin 0.14.0 Performance](https://www.reddit.com/r/Bitcoin/comments/5xomir/0140_is_a_beast_48_faster_initial_sync/)
-29. [Bitcoin Transactions per Second](https://www.blockchain.com/en/charts/transactions-per-second?timespan=all&daysAverageString=7)
-30. [Protocol Documentation - inv messages - bitcoin.it](https://en.bitcoin.it/wiki/Protocol_documentation#inv)
-31. [Analysis of the Bitcoin UTXO set - Delgado-Segura et al](https://eprint.iacr.org/2017/1095.pdf)
-32. [Chart of UTXO set size over time - bitcoin.com](https://charts.bitcoin.com/bch/chart/utxo-set-size#74)
-33. [UTXO uh-oh... - Gavin Andresen](http://gavinandresen.ninja/utxo-uhoh)
-34. [Bitcoin v0.14.1 release notes](https://github.com/bitcoin/bitcoin/blob/452bb90c718da18a79bfad50ff9b7d1c8f1b4aa3/doc/release-notes/release-notes-0.14.1.md) containing info about the dbcache parameter.
-35. [Relay Fallacy - Libbitcoin](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy)
-36. [Falcon, FIBRE and the Fast Relay Network](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784)
-37. [One Bitcoin group now controls 51% of total mining power, threatening entire currency’s safety - extremetech.com](https://www.extremetech.com/extreme/184427-one-bitcoin-group-now-controls-51-of-total-mining-power-threatening-entire-currencys-safety)
-38. [Bitcoin Network Capacity Analysis – Part 6: Data Propagation - tradeblock.com](https://tradeblock.com/blog/bitcoin-network-capacity-analysis-part-6-data-propagation) finding an 11 second average block propagation time in 2015.
-39. [Information Propagation in the Bitcoin Network - Decker and Wattenhofer](http://www.gsd.inesc-id.pt/~ler/docencia/rcs1314/papers/P2P2013_041.pdf) finding a 12.6 second block propagation time in 2013
-40. [Erlay: Bandwidth-Efficient Transaction Relay - Naumenko, Maxwell, Wuille, Fedorava, Beschastnikh](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-May/016994.html)
-41. [assumeutxo](https://github.com/bitcoin/bitcoin/issues/15605)
-42. [Scaling Bitcoin workshop: Tokyo 2018](https://scalingbitcoin.org/transcript/tokyo2018/fraud-proofs) talking about fraud proofs.
-43. [A Short Summary of Solutions for UTXO Scaling](https://www.reddit.com/r/BitcoinDiscussion/comments/bz883v/a_short_summary_of_solutions_for_utxo_scaling/)
-44. [Utreexo](https://dci.mit.edu/utreexo)
-45. [Neutrino](https://blog.lightning.engineering/posts/2018/10/17/neutrino.html)
-46. [Monero's Dynamic Block Size and Dynamic Minimum Fee](https://github.com/JollyMort/monero-research/blob/master/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee%20-%20DRAFT.md)
-47. [Luke Jr's counter of bitcoin nodes](https://luke.dashjr.org/programs/bitcoin/files/charts/software.html). See also [a snapshot from May](https://twitter.com/francispouliot_/status/1125139855313387520).
-48. [How Many People Use Bitcion - bitcoinmarketjournal.com](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)
-49. [Block Propagation videos - dsn.tm.kit.edu](https://dsn.tm.kit.edu/bitcoin/videos.html)
-50. [Compact Block FAQ](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/)
-51. [BIP 152 - Compact Block Relay](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki#Specification_for_version_1)
+2. [Luke Jr on why block sizes shouldn't be too big](https://www.youtube.com/watch?v=CqNEQS80-h4). [This](https://github.com/fresheneesz/bitcoinThroughputAnalysis/blob/master/LukeJr's%20sync-time%20script.py) is the script he used to get those numbers.
+3. [Block Size Increase - BitFury](https://bitfury.com/content/downloads/block-size-1.1.1.pdf)
+4. [compact block FAQ - bitcoincore.org](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/)
+5. [List of countries by internet speeds](https://en.wikipedia.org/wiki/List_of_countries_by_Internet_connection_speeds)
+6. [Internet bandwidth - Country rankings - The Global Economy](https://www.theglobaleconomy.com/rankings/Internet_bandwidth/)
+7. [State of the Internet 2015 - Akamai](https://www.akamai.com/us/en/multimedia/documents/content/state-of-the-internet/q4-2015-state-of-the-internet-connectivity-report-us.pdf)
+8. [State of the Internet 2017 - Akamai](https://www.akamai.com/us/en/multimedia/documents/state-of-the-internet/q4-2016-state-of-the-internet-connectivity-report.pdf)
+9. [Global Speeds 2017 - speedtest.net](https://www.speedtest.net/insights/blog/global-speed-2017/)
+10. [Primer on Latency and Bandwidth - O'Reilly](https://hpbn.co/primer-on-latency-and-bandwidth/)
+11. [Latency and Broadband Performance - CCG Consulting](https://potsandpansbyccg.com/tag/last-mile-latency/)
+12. [Latency: The New Web Performance Bottleneck - Ilya Grigorik](https://www.igvita.com/2012/07/19/latency-the-new-web-performance-bottleneck/)
+13. [9 Best Budget Smartphones You Can Get In India In January 2019 - scoopwhoop.com](https://www.scoopwhoop.com/9-best-budget-smartphones-you-can-get-in-india-in-january-2019/)
+14. [Xiaomi Redmi S2 - pricebaba.com](https://pricebaba.com/mobile/xiaomi-redmi-y2)
+15. [Hard Drive Cost Per Gigabyte - Andy Klein](https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/)
+16. [Eric Kuhn's tweet about verification speed on a raspbery pi](https://twitter.com/erickuhn19/status/1095553655086804993)
+17. [Chart of total Bitcoin transactions over time](https://www.blockchain.com/charts/n-transactions-total)
+18. [Bitcoin Full Validation Sync Performance - James Lopp](https://blog.keys.casa/bitcoin-full-validation-sync-performance/)
+19. [Measuring Moore's Law](https://www.imf.org/~/media/Files/Conferences/2017-stats-forum/session-6-kenneth-flamm.ashx)
+20. [Memory Prices 1957-2019 - John McCallum](https://jcmit.net/memoryprice.htm). See also [my calculations](memoryCostOverTime.xlsx) on that data.
+21. [Bitcoin Full Node Requirements](https://bitcoin.org/en/full-node#minimum-requirements)
+22. [On the Privacy Provisions of Bloom Filters in Lightweight Bitcoin Clients - Gervais et al](https://eprint.iacr.org/2014/763.pdf)
+23. [Thin-client remote node lying through omission - Stack Exchange question](https://bitcoin.stackexchange.com/questions/36643/thin-client-remote-node-lying-through-omission)
+24. [Could SPV Support a Billion Bitcoin Users? - James Lopp](https://www.coindesk.com/spv-support-billion-bitcoin-users-sizing-scaling-claim)
+25. [Bitcoin’s Attack Vectors: Sybil & Eclipse Attacks - Matt ฿](https://medium.com/chainrift-research/bitcoins-attack-vectors-sybil-eclipse-attacks-d1b6679963e5)
+26. [Bitcoin Core 0.14.0 Released: What’s New? - Bitcoin Magazine](https://bitcoinmagazine.com/articles/bitcoin-core-0140-released-whats-new/)
+27. [Bitcoin 0.14.0 Performance](https://www.reddit.com/r/Bitcoin/comments/5xomir/0140_is_a_beast_48_faster_initial_sync/)
+28. [Bitcoin Transactions per Second](https://www.blockchain.com/en/charts/transactions-per-second?timespan=all&daysAverageString=7)
+29. [Protocol Documentation - inv messages - bitcoin.it](https://en.bitcoin.it/wiki/Protocol_documentation#inv)
+30. [Analysis of the Bitcoin UTXO set - Delgado-Segura et al](https://eprint.iacr.org/2017/1095.pdf)
+31. [Chart of UTXO set size over time - bitcoin.com](https://charts.bitcoin.com/bch/chart/utxo-set-size#74)
+32. [UTXO uh-oh... - Gavin Andresen](http://gavinandresen.ninja/utxo-uhoh)
+33. [Bitcoin v0.14.1 release notes](https://github.com/bitcoin/bitcoin/blob/452bb90c718da18a79bfad50ff9b7d1c8f1b4aa3/doc/release-notes/release-notes-0.14.1.md) containing info about the dbcache parameter.
+34. [Relay Fallacy - Libbitcoin](https://github.com/libbitcoin/libbitcoin-system/wiki/Relay-Fallacy)
+35. [Falcon, FIBRE and the Fast Relay Network](https://bitcoinmagazine.com/articles/how-falcon-fibre-and-the-fast-relay-network-speed-up-bitcoin-block-propagation-part-1469808784)
+36. [One Bitcoin group now controls 51% of total mining power, threatening entire currency’s safety - extremetech.com](https://www.extremetech.com/extreme/184427-one-bitcoin-group-now-controls-51-of-total-mining-power-threatening-entire-currencys-safety)
+37. [Bitcoin Network Capacity Analysis – Part 6: Data Propagation - tradeblock.com](https://tradeblock.com/blog/bitcoin-network-capacity-analysis-part-6-data-propagation) finding an 11 second average block propagation time in 2015.
+38. [Information Propagation in the Bitcoin Network - Decker and Wattenhofer](http://www.gsd.inesc-id.pt/~ler/docencia/rcs1314/papers/P2P2013_041.pdf) finding a 12.6 second block propagation time in 2013
+39. [Erlay: Bandwidth-Efficient Transaction Relay - Naumenko, Maxwell, Wuille, Fedorava, Beschastnikh](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-May/016994.html)
+40. [assumeutxo](https://github.com/bitcoin/bitcoin/issues/15605)
+41. [Scaling Bitcoin workshop: Tokyo 2018](https://scalingbitcoin.org/transcript/tokyo2018/fraud-proofs) talking about fraud proofs.
+42. [A Short Summary of Solutions for UTXO Scaling](https://www.reddit.com/r/BitcoinDiscussion/comments/bz883v/a_short_summary_of_solutions_for_utxo_scaling/)
+43. [Utreexo](https://dci.mit.edu/utreexo)
+44. [Neutrino](https://blog.lightning.engineering/posts/2018/10/17/neutrino.html)
+45. [Monero's Dynamic Block Size and Dynamic Minimum Fee](https://github.com/JollyMort/monero-research/blob/master/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee/Monero%20Dynamic%20Block%20Size%20and%20Dynamic%20Minimum%20Fee%20-%20DRAFT.md)
+46. [Luke Jr's counter of bitcoin nodes](https://luke.dashjr.org/programs/bitcoin/files/charts/software.html). See also [a snapshot from May](https://twitter.com/francispouliot_/status/1125139855313387520).
+47. [How Many People Use Bitcion - bitcoinmarketjournal.com](https://www.bitcoinmarketjournal.com/how-many-people-use-bitcoin/)
+48. [Block Propagation videos - dsn.tm.kit.edu](https://dsn.tm.kit.edu/bitcoin/videos.html)
+49. [Compact Block FAQ](https://bitcoincore.org/en/2016/06/07/compact-blocks-faq/)
+50. [BIP 152 - Compact Block Relay](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki#Specification_for_version_1)
