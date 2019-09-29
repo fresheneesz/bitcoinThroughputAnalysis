@@ -953,6 +953,7 @@ v1.1
 
 * Changed machine resource assumptions into confidence ranges to better express uncertainty.
 * Created general goals that don't change over time.
+* Added consideration for monthly data caps.
 * Made some corrections and improvements to the spreadsheet and its calculations.
 * Added additional discussion of failure modes.
 * Added a number of potential solutions: timelock pausing, BetterHash, protocol to seek out better connections, hole punching, and sharding.
