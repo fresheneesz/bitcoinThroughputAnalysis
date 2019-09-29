@@ -1,0 +1,61 @@
+Todo: 
+
+Ask what other questions people would want answers to / data for.
+
+Come up with post-survey tasks and ask for volunteers to do them.
+
+
+Post-survey tasks:
+
+* Looking up CPU specs
+* Looking up bitcoin software 
+* Looking up users and determining sock puppeting likelihood
+* Flagging certain answers as 'clarification needed' and asking the users who gave those answers for clarification.
+
+Questions:
+
+If you believe any of your answers is particularly high or particularly low, please explain what you think the reason for that is, so we have context into outliers. 
+
+What country do you live in?
+
+What's your income level? 
+
+What kind of CPU do you have? (Provide instructions)
+
+How many transactions can your CPU confirm per second? (Provide instructions)
+
+What is your machine's mining hashrate? (Provide instructions)
+
+How much memory does your machine have? (Provide instructions)
+
+What is your bandwidth rated at by your ISP?
+
+What bandwidth do you get when testing on speedtest.net?
+
+What is your latency to google.com? (Provide instructions)
+
+How much total disk space do you have?
+
+How much free disk space do you have?
+
+How old is the primary computer you use to run bitcoin software?
+
+What bitcoin wallet software do you use?
+
+What bitcoin software do you run? 
+
+Is your primary bitcoin machine dedicated to running a bitcoin node or do you mostly use it for non-bitcoin things?
+
+How often do you keep your bitcoin software on? 
+
+Do you hold bitcoin (any amount)?
+
+How often do you receive bitcoin?
+
+How often do you send bitcoin?
+
+How often do you exchange bitcoin for other currencies? 
+
+How often do you buy things with bitcoin (excluding buying other currencies on exchanges)?
+
+How often do you get paid in bitcoin (excluding buying bitcoin on exchanges)
