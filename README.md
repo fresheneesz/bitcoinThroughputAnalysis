@@ -727,7 +727,9 @@ Also, these calculations are estimates of the limits to Bitcoin throughput. Best
 
 The good news is that ideas that have already been thought through can substantially scale Bitcoin to bring us back into a secure state. This will likely take many years to reach, but its very heartening that we have so much headroom to improve Bitcoin into a much stronger system. Based on these estimates, it wouldn't surprise me if we could engineer Bitcoin to be able to safely execute over 100 transactions per second in 10 years.
 
-We should remember that people like Luke Jr are right to worry about our Bitcoin's curent state. It is unsafe to raise the maximum block size at the moment until new scaling technologies are incorporated into Bitcoin. In fact, it was unsafe to have increased the maximum blocksize during segwit. We can build a secure currency in the near future, but for now we need to be patient and understand the limitations of the technology we have today.
+Data caps may significantly constrain the ongoing bandwidth that users can make available for Bitcoin use. If data caps increase much faster than expected, this could mean that many more people could use Neutrino SPV clients (rather than bloom filter SPV clients), and could potentially increase the safe throughput for full nodes a bit too. However, bandwidth may not actually be the most constraining factor in the future.
+
+We should remember that people like Luke Jr are right to worry about our Bitcoin's curent state and the implications of the current blocksize and larger blocksizes. It is unsafe to raise the maximum block size at the moment until new scaling technologies are incorporated into Bitcoin. In fact, it was unsafe to have increased the maximum blocksize during segwit. We can build a secure currency in the near future, but for now we need to be patient and understand the limitations of the technology we have today.
 
 I believe the two most important technologies for Bitcoin on the front of scalability are:
 
