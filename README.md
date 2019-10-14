@@ -1,4 +1,4 @@
-**Status: v1.1 Ready for Review**
+**Status: v1.1 Final**
 
 # An Analysis of Bitcoin's Throughput Bottlenecks, Potential Solutions, and Future Prospects
 
