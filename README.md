@@ -2,7 +2,7 @@
 
 # An Analysis of Bitcoin's Throughput Bottlenecks, Potential Solutions, and Future Prospects
 
-Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size and call that "scaling". Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (actual scaling). It hasn't helped that there are [many misunderstandings](https://medium.com/@thecryptoconomy/7-misunderstandings-of-bitcoins-scaling-problem-c5142e938a68) of where Bitcoin's bottlenecks are.
+Debate about growth of Bitcoin's blockchain has raged for years now. Some want to increase transaction throughput by increasing block size (scaling). Others want to focus on technologies that improve (decrease) the resources necessary to run the network as it grows (improving scalability). It hasn't helped that there are [many misunderstandings](https://medium.com/@thecryptoconomy/7-misunderstandings-of-bitcoins-scaling-problem-c5142e938a68) of where Bitcoin's bottlenecks are.
 
 In this document, I will first analyze the major throughput bottlenecks that constrain the safe throughput capacity of current (2019) Bitcoin software. These bottlenecks are all driven by stress put on the machines that make up the Bitcoin network in worst-case adversarial situations. After looking at the bottlenecks of current software, I will talk about potential solutions to those limits and estimate the throughput capacity we might be able to expect in the future.
 
